@@ -1,22 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: Memento booking and availability API
 servers:
   - url: /api
-    description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: booking
+  - name: admin
+  - name: availability
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
-      summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +22,321 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /settings:
+    get:
+      operationId: getSiteSettings
+      tags: [booking]
+      responses:
+        "200":
+          description: Public booking settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+  /availability:
+    get:
+      operationId: getAvailability
+      tags: [availability]
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Public unavailable windows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilityWindow"
+  /bookings:
+    post:
+      operationId: createBooking
+      tags: [booking]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingInput"
+      responses:
+        "201":
+          description: Booking request saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingConfirmation"
+        "400":
+          description: Invalid request
+        "429":
+          description: Too many requests
+  /admin/bookings:
+    get:
+      operationId: listBookings
+      tags: [admin]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/BookingStatus"
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200":
+          description: Booking requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+        "401":
+          description: Unauthorized
+  /admin/bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBooking
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingUpdate"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+  /admin/bookings/{id}/notes:
+    post:
+      operationId: addBookingNote
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminNoteInput"
+      responses:
+        "201":
+          description: Added note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminNote"
+  /admin/availability:
+    get:
+      operationId: listBlockedAvailability
+      tags: [admin, availability]
+      responses:
+        "200":
+          description: Blocked windows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlockedAvailability"
+    post:
+      operationId: createBlockedAvailability
+      tags: [admin, availability]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockedAvailabilityInput"
+      responses:
+        "201":
+          description: Created blocked window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedAvailability"
+  /admin/availability/{id}:
+    delete:
+      operationId: deleteBlockedAvailability
+      tags: [admin, availability]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Removed
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      responses:
+        "200":
+          description: Booking overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+  /admin/export.csv:
+    get:
+      operationId: exportBookings
+      tags: [admin]
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema: { type: string }
 components:
+  parameters:
+    BookingId:
+      in: path
+      name: id
+      required: true
+      schema: { type: number }
   schemas:
     HealthStatus:
       type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    BookingStatus:
+      type: string
+      enum: [pending, contacted, confirmed, declined, cancelled]
+    SiteSettings:
+      type: object
+      required: [bookingOpeningDate, earlyBookingMode]
+      properties:
+        bookingOpeningDate: { type: string, format: date }
+        earlyBookingMode: { type: boolean }
+    BookingInput:
+      type: object
+      required:
+        [fullName, phone, preferredContactMethod, eventType, eventDate, startTime, venue, location, guestCount, printFormat, backdropPreference, consent]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        phone: { type: string, minLength: 7, maxLength: 30 }
+        email: { type: ["string", "null"] }
+        preferredContactMethod: { type: string, enum: [whatsapp, phone, email] }
+        eventType: { type: string, minLength: 2, maxLength: 80 }
+        eventDate: { type: string, format: date }
+        startTime: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" }
+        endTime: { type: ["string", "null"] }
+        durationHours: { type: ["number", "null"], minimum: 1, maximum: 24 }
+        venue: { type: string, minLength: 2, maxLength: 160 }
+        location: { type: string, minLength: 2, maxLength: 120 }
+        guestCount: { type: number, minimum: 1, maximum: 10000 }
+        printFormat: { type: string, minLength: 2, maxLength: 80 }
+        backdropPreference: { type: string, minLength: 2, maxLength: 120 }
+        addOns: { type: array, items: { type: string } }
+        brandedRequirements: { type: ["string", "null"], maxLength: 2000 }
+        notes: { type: ["string", "null"], maxLength: 2000 }
+        consent: { type: boolean }
+        website: { type: ["string", "null"], description: Honeypot field }
+        earlyRequest: { type: boolean, default: false }
+    BookingConfirmation:
+      type: object
+      required: [id, reference, status, potentialConflict]
+      properties:
+        id: { type: number }
+        reference: { type: string }
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        potentialConflict: { type: boolean }
+    AdminNote:
+      type: object
+      required: [id, note, createdAt]
+      properties:
+        id: { type: number }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+    Booking:
+      allOf:
+        - $ref: "#/components/schemas/BookingInput"
+        - type: object
+          required: [id, reference, status, potentialConflict, createdAt, updatedAt, adminNotes]
+          properties:
+            id: { type: number }
+            reference: { type: string }
+            status:
+              $ref: "#/components/schemas/BookingStatus"
+            potentialConflict: { type: boolean }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+            adminNotes:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminNote"
+    BookingUpdate:
+      type: object
+      required: [status]
       properties:
         status:
-          type: string
-      required:
-        - status
-
+          $ref: "#/components/schemas/BookingStatus"
+    AdminNoteInput:
+      type: object
+      required: [note]
+      properties:
+        note: { type: string, minLength: 1, maxLength: 3000 }
+    AvailabilityWindow:
+      type: object
+      required: [date, startTime, endTime, reason]
+      properties:
+        date: { type: string, format: date }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        reason: { type: string, enum: [confirmed, blocked] }
+    BlockedAvailabilityInput:
+      type: object
+      required: [date, reason]
+      properties:
+        date: { type: string, format: date }
+        startTime: { type: ["string", "null"] }
+        endTime: { type: ["string", "null"] }
+        reason: { type: string, minLength: 2, maxLength: 200 }
+    BlockedAvailability:
+      allOf:
+        - $ref: "#/components/schemas/BlockedAvailabilityInput"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id: { type: number }
+            createdAt: { type: string, format: date-time }
+    AdminSummary:
+      type: object
+      required: [total, pending, contacted, confirmed, declined, cancelled, potentialConflicts, upcomingConfirmed]
+      properties:
+        total: { type: number }
+        pending: { type: number }
+        contacted: { type: number }
+        confirmed: { type: number }
+        declined: { type: number }
+        cancelled: { type: number }
+        potentialConflicts: { type: number }
+        upcomingConfirmed: { type: number }
