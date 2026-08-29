@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
-import { Switch, Route, useLocation, Router as WouterRouter } from 'wouter';
+import { Switch, Route, Link, useLocation, Router as WouterRouter } from 'wouter';
 import { QueryClientProvider, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/navbar";
@@ -140,7 +140,7 @@ function AdminRoute() {
         <div className="flex flex-col min-h-[50vh] items-center justify-center pt-32">
           <p className="font-serif text-2xl text-primary mb-6">Restricted Area</p>
           <p className="text-primary/60 font-light mb-8">Please sign in to access the booking management dashboard.</p>
-          <a href="/sign-in" className="font-sans uppercase tracking-widest text-xs border border-primary px-8 py-3 hover:bg-primary hover:text-primary-foreground transition-colors">Sign In</a>
+           <Link href="/sign-in" className="font-sans uppercase tracking-widest text-xs border border-primary px-8 py-3 hover:bg-primary hover:text-primary-foreground transition-colors">Sign In</Link>
         </div>
       </Show>
     </>
@@ -148,7 +148,48 @@ function AdminRoute() {
 }
 
 function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    const routeMeta: Record<string, { title: string; description: string }> = {
+      "/": { title: "Memento Kigali — Printed. Shared. Remembered.", description: "A considered photo experience for gatherings in Kigali, made physical." },
+      "/experiences": { title: "Experiences — Memento Kigali", description: "Explore Memento photo experiences for weddings, celebrations, brands, and gatherings." },
+      "/gallery": { title: "The Archive — Memento Kigali", description: "A selection of Memento's editorial photo experience placeholders." },
+      "/about": { title: "The Story — Memento Kigali", description: "Why Memento believes in the lasting value of a physical print." },
+      "/book": { title: "Request a Date — Memento Kigali", description: "Tell Memento about your gathering and request availability." },
+      "/contact": { title: "Contact — Memento Kigali", description: "Reach Memento Kigali by WhatsApp, phone, or booking request." },
+      "/privacy": { title: "Privacy Notice — Memento Kigali", description: "How Memento handles booking information and event images." },
+      "/admin": { title: "Bookings — Memento Kigali", description: "Protected Memento booking administration." },
+    };
+    const meta =
+      routeMeta[location] ||
+      (location.startsWith("/sign-in")
+        ? { title: "Sign in — Memento Kigali", description: "Sign in to the protected Memento workspace." }
+        : location.startsWith("/sign-up")
+          ? { title: "Create account — Memento Kigali", description: "Create an account for the protected Memento workspace." }
+          : { title: "Page not found — Memento Kigali", description: "This Memento page could not be found." });
+    document.title = meta.title;
+    let description = document.querySelector('meta[name="description"]');
+    if (!description) {
+      description = document.createElement("meta");
+      description.setAttribute("name", "description");
+      document.head.appendChild(description);
+    }
+    description.setAttribute("content", meta.description);
+    const updateMeta = (selector: string, attribute: "property" | "name", key: string, content: string) => {
+      let element = document.querySelector(selector);
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute(attribute, key);
+        document.head.appendChild(element);
+      }
+      element.setAttribute("content", content);
+    };
+    updateMeta('meta[property="og:title"]', "property", "og:title", meta.title);
+    updateMeta('meta[property="og:description"]', "property", "og:description", meta.description);
+    updateMeta('meta[name="twitter:title"]', "name", "twitter:title", meta.title);
+    updateMeta('meta[name="twitter:description"]', "name", "twitter:description", meta.description);
+  }, [location]);
 
   return (
     <ClerkProvider

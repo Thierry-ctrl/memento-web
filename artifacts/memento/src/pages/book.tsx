@@ -118,10 +118,10 @@ export default function Book() {
 
   if (confirmation) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background px-6 pt-24">
+       <main className="min-h-screen flex items-center justify-center paper px-6 pt-24">
         <div className="max-w-2xl text-center fade-up">
-          <p className="font-hand text-3xl text-secondary mb-6">request received</p>
-          <h1 className="font-serif text-5xl text-primary mb-8">Thank you.</h1>
+           <p className="annotation text-3xl mb-6">request received</p>
+           <h1 className="font-serif text-5xl text-primary mb-8">Thank <em>you.</em></h1>
           <p className="text-primary/70 font-light leading-relaxed mb-12">
             We have received your booking request. Your reference is <strong>{confirmation.reference}</strong>. We will review availability and contact you personally. Submission does not guarantee confirmation.
           </p>
@@ -135,13 +135,13 @@ export default function Book() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col pt-32 pb-24 bg-background">
+     <main className="min-h-screen flex flex-col pt-32 pb-24 paper">
       <div className="max-w-3xl mx-auto w-full px-6">
         
         {/* Progress indicator */}
         <div className="mb-16">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-sans text-xs tracking-widest uppercase text-primary/50">Step {step} of 5</span>
+             <span className="eyebrow text-primary/50">Step {step} of 5</span>
             <span className="font-serif text-primary/80">
               {step === 1 && "Personal Details"}
               {step === 2 && "Event Details"}
@@ -150,7 +150,7 @@ export default function Book() {
               {step === 5 && "Review"}
             </span>
           </div>
-          <div className="h-0.5 w-full bg-primary/10 flex">
+           <div className="h-px w-full bg-primary/10 flex">
             <div 
               className="h-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${(step / 5) * 100}%` }}
@@ -314,20 +314,24 @@ export default function Book() {
                       <FormLabel>Print Format</FormLabel>
                       <FormControl>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div 
+                          <button
+                            type="button"
                             className={`border p-6 cursor-pointer transition-colors ${field.value === '4x6' ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
                             onClick={() => field.onChange('4x6')}
+                            aria-pressed={field.value === '4x6'}
                           >
                             <p className="font-serif text-xl text-primary mb-2">Classic 4x6</p>
                             <p className="text-sm font-light text-primary/70">The Studio Portrait style. Large, clear, editorial.</p>
-                          </div>
-                          <div 
+                          </button>
+                          <button
+                            type="button"
                             className={`border p-6 cursor-pointer transition-colors ${field.value === '2x6-strip' ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
                             onClick={() => field.onChange('2x6-strip')}
+                            aria-pressed={field.value === '2x6-strip'}
                           >
                             <p className="font-serif text-xl text-primary mb-2">2x6 Strip</p>
                             <p className="text-sm font-light text-primary/70">The Noir style. A 3-frame sequence on a tactile strip.</p>
-                          </div>
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -348,14 +352,16 @@ export default function Book() {
                             { val: 'pure-white', label: 'Pure White', desc: 'High contrast, clean.' },
                             { val: 'custom', label: 'Custom / Bespoke', desc: 'Built for your event.' }
                           ].map((opt) => (
-                            <div 
+                            <button
+                              type="button"
                               key={opt.val}
                               className={`border p-5 cursor-pointer transition-colors ${field.value === opt.val ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
                               onClick={() => field.onChange(opt.val)}
+                              aria-pressed={field.value === opt.val}
                             >
                               <p className="font-serif text-lg text-primary mb-1">{opt.label}</p>
                               <p className="text-xs font-light text-primary/70">{opt.desc}</p>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       </FormControl>
@@ -421,7 +427,7 @@ export default function Book() {
             <div className={step === 5 ? "block fade-up" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Review & Submit</h2>
               
-              <div className="bg-card border border-primary/10 p-8 mb-8 space-y-6">
+              <div className="bg-card border border-primary/10 p-8 mb-8 space-y-6 print-lift">
                 <div className="grid grid-cols-2 gap-y-4 text-sm">
                   <div className="text-primary/60">Name</div>
                   <div className="text-primary">{form.getValues("fullName")}</div>

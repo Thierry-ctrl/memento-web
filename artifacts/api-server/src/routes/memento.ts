@@ -40,12 +40,16 @@ const requireAdmin: RequestHandler = (req, res, next) => {
     return;
   }
   const allowlisted = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (!allowlisted) {
+    res.status(503).json({ error: "Administrator access is not configured" });
+    return;
+  }
   const claimEmail = String(
     auth.sessionClaims?.email ??
       auth.sessionClaims?.email_address ??
       "",
   ).toLowerCase();
-  if (allowlisted && claimEmail !== allowlisted) {
+  if (claimEmail !== allowlisted) {
     res.status(403).json({ error: "Administrator access required" });
     return;
   }

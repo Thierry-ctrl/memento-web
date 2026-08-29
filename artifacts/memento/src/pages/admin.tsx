@@ -230,13 +230,14 @@ export default function Admin() {
   }
 
   return (
-    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 bg-background">
+    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 paper">
       <div className="max-w-[1400px] mx-auto w-full px-6">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 fade-up">
           <div>
-            <h1 className="font-serif text-5xl text-primary mb-2">Bookings</h1>
+             <p className="eyebrow text-secondary mb-3">Private workspace</p>
+             <h1 className="font-serif text-5xl text-primary mb-2">Bookings <em>desk.</em></h1>
             <p className="text-primary/60 font-light">Manage inquiries, availability, and confirmed events.</p>
           </div>
           <div className="flex gap-4">
@@ -252,15 +253,15 @@ export default function Admin() {
         {/* Summary Cards */}
         {!isLoadingSummary && summary && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-12 fade-up">
-            <div className="bg-card border border-primary/5 p-6">
+             <div className="bg-card border border-primary/10 p-6 print-lift">
               <p className="text-[10px] uppercase tracking-[0.2em] text-primary/50 mb-2">Pending</p>
               <p className="font-serif text-3xl text-primary">{summary.pending}</p>
             </div>
-            <div className="bg-card border border-primary/5 p-6">
+             <div className="bg-card border border-primary/10 p-6">
               <p className="text-[10px] uppercase tracking-[0.2em] text-primary/50 mb-2">Confirmed</p>
               <p className="font-serif text-3xl text-primary">{summary.confirmed}</p>
             </div>
-            <div className="bg-card border border-primary/5 p-6">
+             <div className="bg-card border border-primary/10 p-6">
               <p className="text-[10px] uppercase tracking-[0.2em] text-primary/50 mb-2">Conflicts</p>
               <p className="font-serif text-3xl text-destructive flex items-center gap-2">
                 {summary.potentialConflicts} {summary.potentialConflicts > 0 && <AlertCircle className="w-4 h-4" />}

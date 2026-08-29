@@ -44,10 +44,11 @@ export default function Experiences() {
   ];
 
   return (
-    <main className="w-full flex flex-col min-h-screen pt-32 pb-24">
+    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 paper">
       {/* Header */}
       <section className="px-6 md:px-12 max-w-7xl mx-auto w-full mb-24 fade-up">
-        <h1 className="font-serif text-6xl md:text-8xl text-primary mb-8">Experiences</h1>
+        <p className="eyebrow text-secondary mb-5">The offering / 01—02</p>
+        <h1 className="font-serif text-6xl md:text-8xl text-primary mb-8">Make it <em>physical.</em></h1>
         <p className="text-xl font-light text-primary/70 max-w-2xl leading-relaxed">
           Every event requires a distinct touch. We offer two core setups, each designed to capture the atmosphere with restraint and elegance.
         </p>
@@ -59,7 +60,7 @@ export default function Experiences() {
           <div key={idx} className={`grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center ${idx % 2 === 1 ? 'lg:rtl' : ''}`}>
             
             <div className={`aspect-[4/5] w-full bg-muted crop-reveal relative overflow-hidden flex items-center justify-center ${idx % 2 === 1 ? 'lg:order-2' : 'lg:order-1'}`}>
-              <span className="font-sans text-xs tracking-widest uppercase text-primary/30 relative z-10">{exp.label}</span>
+              <span className="placeholder-label">{exp.label.replace(" Placeholder", " / placeholder")}</span>
               <div 
                 className="absolute inset-0 bg-cover bg-center filter grayscale-[0.4]"
                 style={{ backgroundImage: `url(${exp.image})` }}

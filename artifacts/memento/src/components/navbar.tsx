@@ -38,16 +38,17 @@ export function Navbar() {
           key={link.href} 
           href={link.href}
           className={cn(
-            "text-sm tracking-widest uppercase transition-colors hover:text-primary/70",
-            location === link.href ? "text-primary font-medium" : "text-primary/80"
+            "eyebrow transition-colors hover:text-secondary",
+            location === link.href ? "text-primary font-bold" : "text-primary/65"
           )}
+          aria-current={location === link.href ? "page" : undefined}
         >
           {link.label}
         </Link>
       ))}
       <Link href="/book" className="ml-4 hidden md:block">
-        <Button variant="outline" className="rounded-none tracking-widest uppercase text-xs h-9 px-6 border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all duration-500">
-          Book Memento
+        <Button variant="outline" className="rounded-none tracking-widest uppercase text-[10px] h-10 px-5 border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all duration-500">
+          Request a date
         </Button>
       </Link>
     </>
@@ -56,13 +57,16 @@ export function Navbar() {
   return (
     <header 
       className={cn(
-        "fixed top-0 inset-x-0 z-50 transition-all duration-700 ease-in-out px-6 md:px-12 py-4 flex items-center justify-between",
-        isScrolled ? "bg-background/90 backdrop-blur-md py-4 border-b border-primary/5" : "bg-transparent py-8"
+        "fixed top-0 inset-x-0 z-50 transition-all duration-700 ease-in-out px-5 md:px-12 py-4 flex items-center justify-between",
+        isScrolled ? "bg-background/92 backdrop-blur-md py-4 border-b border-primary/10" : "bg-background/70 backdrop-blur-[2px] py-6 md:py-8"
       )}
     >
-      <Link href="/" className="group z-50 flex flex-col">
-        <span className="font-serif text-3xl md:text-4xl tracking-tight text-primary transition-opacity group-hover:opacity-80">Memento</span>
-        <span className="font-sans text-[0.6rem] tracking-[0.2em] uppercase text-primary/60 mt-0.5">Kigali</span>
+      <Link href="/" className="group z-50 flex items-start gap-2" aria-label="Memento Kigali home">
+        <span className="mt-1 block h-2 w-2 rounded-full bg-secondary" aria-hidden="true" />
+        <span className="flex flex-col">
+          <span className="font-serif text-3xl md:text-4xl tracking-tight text-primary leading-none transition-opacity group-hover:opacity-80">Memento</span>
+          <span className="eyebrow text-primary/55 mt-1">Kigali / Photo experiences</span>
+        </span>
       </Link>
 
       {/* Desktop Nav */}
@@ -70,8 +74,8 @@ export function Navbar() {
         <NavContent />
         {isSignedIn && (
           <div className="flex items-center gap-4 ml-4 border-l border-primary/10 pl-6">
-            <Link href="/admin" className="text-sm tracking-widest uppercase text-primary/80 hover:text-primary">Admin</Link>
-            <button onClick={() => signOut()} className="text-sm tracking-widest uppercase text-primary/80 hover:text-primary">Sign Out</button>
+            <Link href="/admin" className="eyebrow text-primary/65 hover:text-primary">Admin</Link>
+            <button onClick={() => signOut()} className="eyebrow text-primary/65 hover:text-primary">Sign out</button>
           </div>
         )}
       </nav>
@@ -80,15 +84,16 @@ export function Navbar() {
       <button 
         className="md:hidden z-50 text-primary"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle menu"
+         aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+         aria-expanded={mobileMenuOpen}
       >
         {mobileMenuOpen ? <X size={24} strokeWidth={1} /> : <Menu size={24} strokeWidth={1} />}
       </button>
 
       {/* Mobile Nav */}
       <div className={cn(
-        "fixed inset-0 bg-background z-40 flex flex-col items-center justify-center gap-8 transition-transform duration-500 ease-in-out md:hidden",
-        mobileMenuOpen ? "translate-y-0" : "-translate-y-full"
+        "fixed inset-0 bg-background z-40 flex flex-col items-center justify-center gap-8 transition-all duration-500 ease-in-out md:hidden",
+        mobileMenuOpen ? "visible translate-y-0 opacity-100" : "invisible pointer-events-none -translate-y-4 opacity-0"
       )}>
         {navLinks.map((link) => (
           <Link 
@@ -103,8 +108,8 @@ export function Navbar() {
           </Link>
         ))}
         <Link href="/book" className="mt-4">
-          <Button variant="outline" className="rounded-none tracking-widest uppercase text-sm h-12 px-8 border-primary/20">
-            Book Memento
+            <Button variant="outline" className="rounded-none tracking-widest uppercase text-xs h-12 px-8 border-primary/30">
+             Request a date
           </Button>
         </Link>
         {isSignedIn && (

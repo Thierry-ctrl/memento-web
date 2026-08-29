@@ -1,8 +1,9 @@
 export default function Privacy() {
   return (
-    <main className="w-full flex flex-col min-h-screen pt-40 pb-24 bg-background">
+    <main className="w-full flex flex-col min-h-screen pt-40 pb-24 paper">
       <section className="px-6 md:px-12 max-w-3xl mx-auto w-full">
-        <h1 className="font-serif text-5xl text-primary mb-12">Privacy Notice</h1>
+        <p className="eyebrow text-secondary mb-5">The fine print</p>
+        <h1 className="font-serif text-5xl text-primary mb-12">Privacy <em>Notice.</em></h1>
         
         <div className="space-y-8 font-light text-primary/80 leading-relaxed">
           <p>

@@ -5,9 +5,10 @@ export default function About() {
   useScrollReveal();
 
   return (
-    <main className="w-full flex flex-col min-h-screen pt-32 pb-24">
+    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 paper">
       <section className="px-6 md:px-12 max-w-4xl mx-auto w-full mb-32 fade-up text-center">
-        <h1 className="font-serif text-6xl md:text-7xl text-primary mb-8">The Story</h1>
+         <p className="eyebrow text-secondary mb-5">A small manifesto</p>
+         <h1 className="font-serif text-6xl md:text-7xl text-primary mb-8">The <em>Story.</em></h1>
         <p className="text-2xl font-serif text-primary/80 italic leading-relaxed">
           "We take photos as a return ticket to a moment otherwise gone."
         </p>
@@ -15,7 +16,7 @@ export default function About() {
 
       <section className="px-6 md:px-12 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-20 items-center mb-32">
         <div className="aspect-[4/5] w-full bg-muted crop-reveal relative overflow-hidden flex items-center justify-center">
-          <span className="font-sans text-[10px] tracking-widest uppercase text-primary/30 relative z-10 text-center px-4">Event Ambience Placeholder</span>
+           <span className="placeholder-label">Event ambience / placeholder</span>
           <div className="absolute inset-0 bg-cover bg-center opacity-90 filter grayscale-[0.2]" style={{ backgroundImage: `url(${heroImg})` }} />
         </div>
         <div className="flex flex-col gap-6 text-lg font-light text-primary/80 leading-relaxed fade-up">
@@ -32,7 +33,8 @@ export default function About() {
       </section>
 
       <section className="bg-primary text-primary-foreground py-32 px-6 md:px-12">
-        <div className="max-w-4xl mx-auto text-center fade-up">
+         <div className="max-w-4xl mx-auto text-center fade-up">
+           <p className="eyebrow text-secondary mb-5">Why it matters</p>
           <h2 className="font-serif text-4xl md:text-5xl mb-12">Why Physical Prints Matter</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left">
             <div>

@@ -5,19 +5,20 @@ export default function Contact() {
   useScrollReveal();
 
   return (
-    <main className="w-full flex flex-col min-h-screen pt-40 pb-24 bg-background">
+    <main className="w-full flex flex-col min-h-screen pt-40 pb-24 paper">
       <section className="px-6 md:px-12 max-w-5xl mx-auto w-full fade-up">
         <div className="text-center mb-24">
-          <h1 className="font-serif text-6xl md:text-8xl text-primary mb-6">Contact</h1>
+           <p className="eyebrow text-secondary mb-5">Start a conversation</p>
+           <h1 className="font-serif text-6xl md:text-8xl text-primary mb-6">Contact <em>us.</em></h1>
           <p className="text-xl font-light text-primary/60 max-w-xl mx-auto">
             We operate by appointment and availability. Reach out to discuss your event.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 lg:gap-24">
-          <div className="flex flex-col gap-12 bg-card p-10 md:p-16 border border-primary/5">
+           <div className="flex flex-col gap-12 bg-card p-10 md:p-16 border border-primary/10 print-lift">
             <div>
-              <h2 className="font-sans text-xs tracking-[0.2em] uppercase text-primary/50 mb-4">Direct Lines</h2>
+               <h2 className="eyebrow text-primary/50 mb-4">Direct lines</h2>
               <div className="space-y-6">
                 <a 
                   href="https://wa.me/250788628735" 
@@ -50,7 +51,7 @@ export default function Contact() {
             </div>
             
             <div>
-              <h2 className="font-sans text-xs tracking-[0.2em] uppercase text-primary/50 mb-4">Location</h2>
+               <h2 className="eyebrow text-primary/50 mb-4">Location</h2>
               <p className="font-serif text-2xl text-primary mb-2">Kigali, Rwanda</p>
               <p className="text-primary/60 font-light text-sm">Available for travel nationwide upon request.</p>
             </div>
