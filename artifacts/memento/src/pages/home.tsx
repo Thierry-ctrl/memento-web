@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 // We use relative imports for assets generated
-import heroImg from "@assets/generated_images/hero_placeholder.jpg";
-import studioImg from "@assets/generated_images/studio_portrait.jpg";
-import galleryImg1 from "@assets/generated_images/gallery_1.jpg";
-import stripImg from "@assets/generated_images/photo_strip.jpg";
+import heroImg from "@assets/generated_images/memento_kigali_hero.jpg";
+import studioImg from "@assets/generated_images/memento_kigali_portrait.jpg";
+import galleryImg1 from "@assets/generated_images/memento_kigali_candid.jpg";
+import stripImg from "@assets/generated_images/memento_kigali_prints.jpg";
 
 export default function Home() {
   useScrollReveal();

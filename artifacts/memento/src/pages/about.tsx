@@ -1,5 +1,5 @@
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import heroImg from "@assets/generated_images/hero_placeholder.jpg";
+import heroImg from "@assets/generated_images/memento_kigali_hero.jpg";
 
 export default function About() {
   useScrollReveal();

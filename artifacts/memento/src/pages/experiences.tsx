@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 // Assets
-import studioImg from "@assets/generated_images/studio_portrait.jpg";
-import stripImg from "@assets/generated_images/photo_strip.jpg";
+import studioImg from "@assets/generated_images/memento_kigali_portrait.jpg";
+import stripImg from "@assets/generated_images/memento_kigali_prints.jpg";
 
 export default function Experiences() {
   useScrollReveal();
