@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Memento"
+description = "A premium Kigali photo-experience website with a multi-step booking-request flow, availability management, and a protected administrator area."
+version = "1.0.0"
+id = "artifacts/memento"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23051
+
+[services.development]
+run = "pnpm --filter @workspace/memento run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/memento", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/memento/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23051"
+BASE_PATH = "/"
