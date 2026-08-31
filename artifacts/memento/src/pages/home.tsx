@@ -13,12 +13,9 @@ export default function Home() {
 
   return (
     <main className="w-full flex flex-col min-h-screen">
-      {/* Hero Section */}
       <section className="relative min-h-[100dvh] w-full flex items-center overflow-hidden border-b border-primary/10">
-        {/* Editorial Placeholder Image */}
         <div className="absolute inset-0 z-0 bg-muted flex items-center justify-center">
           <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-multiply filter grayscale" style={{ backgroundImage: `url(${heroImg})` }} />
-          <span className="placeholder-label left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">Editorial visual / placeholder</span>
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/45 to-background/20 z-0" />
           <div className="absolute inset-5 md:inset-10 border border-primary/20 pointer-events-none" />
         </div>
