@@ -1,0 +1,46 @@
+Essential before launch
+1. Make booking availability real
+   The website currently displays opening dates and checks availability, but the backend can still accept blocked or conflicting bookings. It should reject unavailable dates and duplicate time slots.
+2. Send booking notifications
+   After a request is submitted:
+   - Client receives a confirmation
+   - Memento receives the booking details by email
+   - Optional WhatsApp notification or link
+   - Booking reference number is generated
+3. Clarify the booking workflow
+   Present it as a booking request, not an instantly confirmed reservation:
+   Request submitted → Memento reviews availability → Client receives confirmation
+4. Match the approved service package exactly
+   Include:
+   - Custom Photo Layout
+   - Unlimited Instant Prints with preferred format
+   - Online Album
+   - iPad Sharing Station
+   - Choice of Backdrop
+   - Professional On-Site Attendant
+   Add-ons:
+   - Keepsakes & Memory Books
+   - Custom Backdrops
+   - Branded Experiences
+5. Remove placeholder content
+   Replace generated placeholder labels, temporary images and unfinished text with approved Memento photography and final copy.
+6. Complete the authentication migration
+   The current administrator login uses Replit-managed Clerk. For AWS, the client needs a Memento-owned Clerk application and its production credentials.
+Design refinements
+7. Improve faded-rose readability
+   Faded rose is attractive but too light for certain text. Keep it for decoration and larger headings; use Ink Black for important information, form labels and buttons.
+8. Check the full mobile experience
+   Especially the booking form, package cards, navigation, gallery and confirmation screen.
+9. Add proper system states
+   The form needs clear loading, success, unavailable-date and error messages—not just a generic submission response.
+10. Finish basic SEO and sharing details
+   Add the page title, description, favicon, Instagram-sharing image, Memento contact details and local Kigali keywords.
+Reliability and launch preparation
+11. Add automated tests
+   Particularly for availability conflicts, booking creation, required fields and opening-date restrictions.
+12. Prepare it for AWS deployment
+   Add Docker configuration, HTTPS, environment settings, automatic deployment from GitHub, database migrations, backups and monitoring.
+13. Protect customer information
+   Add spam protection, request limits, secure administrator access, a short privacy notice and restricted database access.
+14. Add an owner-friendly booking view
+   A simple protected area where Memento can view requests, update their status and see upcoming events. This can remain basic for V1—no need for a complicated dashboard.
