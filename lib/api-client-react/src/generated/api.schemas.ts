@@ -154,7 +154,7 @@ export type BookingPaymentMethod = typeof BookingPaymentMethod[keyof typeof Book
 
 
 export const BookingPaymentMethod = {
-  mpesa: 'mpesa',
+  mtn_momo: 'mtn_momo',
 } as const;
 
 export type Booking = BookingInput & {

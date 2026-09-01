@@ -157,7 +157,7 @@ export default function Book() {
             <p className="eyebrow text-primary/50 mb-3">Estimated booking</p>
             <p className="text-primary">Total: RWF {confirmation.totalAmountRwf.toLocaleString()}</p>
             <p className="text-primary">30% deposit: RWF {confirmation.depositAmountRwf.toLocaleString()}</p>
-            <p className="text-sm text-primary/60 mt-3">No payment is due yet. After Memento approves availability, we will send M‑Pesa payment instructions.</p>
+            <p className="text-sm text-primary/60 mt-3">No payment is due yet. After Memento approves availability, we will send MTN Mobile Money payment instructions.</p>
           </div>
           <a href="https://wa.me/250788628735" target="_blank" rel="noreferrer" className="inline-block mb-5 font-sans uppercase tracking-widest text-xs border-b border-primary">Follow up on WhatsApp</a>
           <Link href="/">
@@ -554,7 +554,7 @@ export default function Book() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-xs normal-case tracking-normal">
-                        I understand that this is an availability request, not a confirmed booking. If Memento approves the request, I will receive instructions to pay the 30% deposit through M‑Pesa.
+                        I understand that this is an availability request, not a confirmed booking. If Memento approves the request, I will receive instructions to pay the 30% deposit through MTN Mobile Money.
                       </FormLabel>
                       <FormMessage />
                     </div>

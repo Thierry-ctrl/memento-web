@@ -76,14 +76,14 @@ function BookingDetails({ id, onClose }: { id: number, onClose: () => void }) {
             <p className="text-primary text-right">RWF {booking.totalAmountRwf.toLocaleString()}</p>
             <p className="text-primary/60">Deposit ({booking.depositPercentage}%)</p>
             <p className="text-primary text-right">RWF {booking.depositAmountRwf.toLocaleString()}</p>
-            <p className="text-primary/60">M‑Pesa status</p>
+            <p className="text-primary/60">MTN Mobile Money status</p>
             <p className="text-primary text-right uppercase text-xs tracking-widest">
               {booking.paymentStatus === "not_due" ? "Not due" : booking.paymentStatus}
             </p>
           </div>
           {booking.paymentStatus === "due" && (
             <p className="text-xs text-primary/60 mt-3 border-t border-primary/10 pt-3">
-              Availability is approved. Send the client M‑Pesa payment instructions for the deposit.
+              Availability is approved. Send the client MTN Mobile Money payment instructions for the deposit.
             </p>
           )}
         </div>

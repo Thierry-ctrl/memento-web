@@ -308,7 +308,7 @@ components:
             depositAmountRwf: { type: number }
             paymentStatus:
               $ref: "#/components/schemas/PaymentStatus"
-            paymentMethod: { type: string, enum: [mpesa] }
+            paymentMethod: { type: string, enum: [mtn_momo] }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
             adminNotes:

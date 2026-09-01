@@ -53,7 +53,7 @@ export const bookingRequestsTable = pgTable("booking_requests", {
   depositPercentage: integer("deposit_percentage").notNull().default(30),
   depositAmountRwf: integer("deposit_amount_rwf").notNull().default(0),
   paymentStatus: paymentStatusEnum("payment_status").notNull().default("not_due"),
-  paymentMethod: text("payment_method").notNull().default("mpesa"),
+  paymentMethod: text("payment_method").notNull().default("mtn_momo"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

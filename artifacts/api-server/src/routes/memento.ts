@@ -194,7 +194,7 @@ router.post("/bookings", async (req, res): Promise<void> => {
     depositPercentage,
     depositAmountRwf,
     paymentStatus: "not_due",
-    paymentMethod: "mpesa",
+    paymentMethod: "mtn_momo",
   }).returning();
   requestTimes.set(ip, [...recent, now]);
   res.status(201).json(CreateBookingResponse.parse(created));

@@ -181,7 +181,7 @@ export const ListBookingsResponseItem = zod.object({
   "depositPercentage": zod.number(),
   "depositAmountRwf": zod.number(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mpesa']),
+  "paymentMethod": zod.enum(['mtn_momo']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -266,7 +266,7 @@ export const GetBookingResponse = zod.object({
   "depositPercentage": zod.number(),
   "depositAmountRwf": zod.number(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mpesa']),
+  "paymentMethod": zod.enum(['mtn_momo']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -354,7 +354,7 @@ export const UpdateBookingResponse = zod.object({
   "depositPercentage": zod.number(),
   "depositAmountRwf": zod.number(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mpesa']),
+  "paymentMethod": zod.enum(['mtn_momo']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
