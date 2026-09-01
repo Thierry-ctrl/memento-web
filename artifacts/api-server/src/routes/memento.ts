@@ -66,6 +66,14 @@ function overlaps(startA: string, endA: string | null, startB: string | null, en
   return startA < endB && endA > startB;
 }
 
+function endTimeFromDuration(startTime: string, durationHours: number): string {
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const totalMinutes = hours * 60 + minutes + durationHours * 60;
+  const endHours = Math.floor(totalMinutes / 60);
+  if (endHours >= 24) return "23:59";
+  return `${String(endHours).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+}
+
 async function notesFor(ids: number[]) {
   if (!ids.length) return new Map<number, Array<{ id: number; note: string; createdAt: Date }>>();
   const notes = await db.select().from(adminNotesTable).where(sql`${adminNotesTable.bookingId} = ANY(${ids})`).orderBy(asc(adminNotesTable.createdAt));
@@ -133,6 +141,14 @@ router.post("/bookings", async (req, res): Promise<void> => {
     return;
   }
   const eventDate = dateString(parsed.data.eventDate);
+  if (parsed.data.customerType === "organization" && !parsed.data.organizationName?.trim()) {
+    res.status(400).json({ error: "Organization name is required for organization bookings." });
+    return;
+  }
+  if (!Number.isInteger(parsed.data.durationHours)) {
+    res.status(400).json({ error: "Booking duration must be a whole number of hours." });
+    return;
+  }
   if (eventDate < new Date().toISOString().slice(0, 10)) {
     res.status(400).json({ error: "Event date cannot be in the past." });
     return;
@@ -141,22 +157,44 @@ router.post("/bookings", async (req, res): Promise<void> => {
     db.select().from(bookingRequestsTable).where(and(eq(bookingRequestsTable.eventDate, eventDate), or(eq(bookingRequestsTable.status, "pending"), eq(bookingRequestsTable.status, "contacted"), eq(bookingRequestsTable.status, "confirmed")))),
     db.select().from(blockedAvailabilityTable).where(eq(blockedAvailabilityTable.date, eventDate)),
   ]);
-  const endTime = parsed.data.endTime ?? null;
-  const conflict = sameDate.some((item) => overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime)) ||
-    blocked.some((item) => overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime));
+  const endTime = parsed.data.endTime ?? endTimeFromDuration(parsed.data.startTime, parsed.data.durationHours);
+  const hourlyRateRwf = 150_000;
+  const depositPercentage = 30;
+  const totalAmountRwf = parsed.data.durationHours * hourlyRateRwf;
+  const depositAmountRwf = Math.round(totalAmountRwf * (depositPercentage / 100));
+  const blockedConflict = blocked.some((item) => overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime));
+  const confirmedConflict = sameDate.some((item) =>
+    item.status === "confirmed" && overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime),
+  );
+  if (blockedConflict || confirmedConflict) {
+    res.status(409).json({
+      error: "That time is unavailable. Please choose another date or time.",
+    });
+    return;
+  }
+  const conflict = sameDate.some((item) =>
+    item.status !== "confirmed" && overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime),
+  );
   const reference = `MEM-${eventDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 5).toUpperCase()}`;
   const [created] = await db.insert(bookingRequestsTable).values({
     ...parsed.data,
+    organizationName: parsed.data.customerType === "organization" ? parsed.data.organizationName?.trim() : null,
     email: parsed.data.email ?? null,
     eventDate,
     endTime,
-    durationHours: parsed.data.durationHours ? Math.round(parsed.data.durationHours) : null,
+    durationHours: parsed.data.durationHours,
     guestCount: Math.round(parsed.data.guestCount),
     addOns: parsed.data.addOns ?? [],
     brandedRequirements: parsed.data.brandedRequirements ?? null,
     notes: parsed.data.notes ?? null,
     reference,
     potentialConflict: conflict,
+    hourlyRateRwf,
+    totalAmountRwf,
+    depositPercentage,
+    depositAmountRwf,
+    paymentStatus: "not_due",
+    paymentMethod: "mpesa",
   }).returning();
   requestTimes.set(ip, [...recent, now]);
   res.status(201).json(CreateBookingResponse.parse(created));
@@ -203,7 +241,10 @@ router.patch("/admin/bookings/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid update" });
     return;
   }
-  const [row] = await db.update(bookingRequestsTable).set({ status: body.data.status }).where(eq(bookingRequestsTable.id, params.data.id)).returning();
+  const [row] = await db.update(bookingRequestsTable).set({
+    status: body.data.status,
+    paymentStatus: body.data.status === "confirmed" ? "due" : "not_due",
+  }).where(eq(bookingRequestsTable.id, params.data.id)).returning();
   if (!row) {
     res.status(404).json({ error: "Booking not found" });
     return;
@@ -265,8 +306,8 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
 router.get("/admin/export.csv", async (_req, res): Promise<void> => {
   const rows = await db.select().from(bookingRequestsTable).orderBy(desc(bookingRequestsTable.createdAt));
   const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-  const header = ["Reference", "Status", "Name", "Phone", "Email", "Event", "Date", "Start", "Venue", "Location", "Guests", "Conflict"];
-  const csv = [header.map(quote).join(","), ...rows.map((row) => [row.reference, row.status, row.fullName, row.phone, row.email, row.eventType, row.eventDate, row.startTime, row.venue, row.location, row.guestCount, row.potentialConflict].map(quote).join(","))].join("\n");
+  const header = ["Reference", "Status", "Customer type", "Organization", "Name", "Phone", "Email", "Event", "Date", "Start", "Hours", "Venue", "Location", "Guests", "Total RWF", "Deposit RWF", "Payment", "Conflict"];
+  const csv = [header.map(quote).join(","), ...rows.map((row) => [row.reference, row.status, row.customerType, row.organizationName, row.fullName, row.phone, row.email, row.eventType, row.eventDate, row.startTime, row.durationHours, row.venue, row.location, row.guestCount, row.totalAmountRwf, row.depositAmountRwf, row.paymentStatus, row.potentialConflict].map(quote).join(","))].join("\n");
   res.type("text/csv").setHeader("Content-Disposition", "attachment; filename=memento-bookings.csv").send(csv);
 });
 

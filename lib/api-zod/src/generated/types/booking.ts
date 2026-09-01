@@ -7,13 +7,21 @@
  */
 import type { AdminNote } from './adminNote';
 import type { BookingInput } from './bookingInput';
+import type { BookingPaymentMethod } from './bookingPaymentMethod';
 import type { BookingStatus } from './bookingStatus';
+import type { PaymentStatus } from './paymentStatus';
 
 export type Booking = BookingInput & {
   id: number;
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
+  hourlyRateRwf: number;
+  totalAmountRwf: number;
+  depositPercentage: number;
+  depositAmountRwf: number;
+  paymentStatus: PaymentStatus;
+  paymentMethod: BookingPaymentMethod;
   createdAt: Date;
   updatedAt: Date;
   adminNotes: AdminNote[];

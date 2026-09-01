@@ -33,6 +33,8 @@ export const GetAvailabilityResponseItem = zod.object({
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
 
 
+export const createBookingBodyOrganizationNameMax = 160;
+
 export const createBookingBodyFullNameMin = 2;
 export const createBookingBodyFullNameMax = 120;
 
@@ -43,7 +45,9 @@ export const createBookingBodyEventTypeMin = 2;
 export const createBookingBodyEventTypeMax = 80;
 
 export const createBookingBodyStartTimeRegExp = new RegExp('^([01]\\d|2[0-3]):[0-5]\\d$');
+export const createBookingBodyDurationHoursMin = 2;
 export const createBookingBodyDurationHoursMax = 24;
+export const createBookingBodyDurationHoursMultipleOf = 1;
 
 export const createBookingBodyVenueMin = 2;
 export const createBookingBodyVenueMax = 160;
@@ -66,6 +70,8 @@ export const createBookingBodyNotesMax = 2000;
 export const createBookingBodyEarlyRequestDefault = false;
 
 export const CreateBookingBody = zod.object({
+  "customerType": zod.enum(['individual', 'organization']),
+  "organizationName": zod.string().max(createBookingBodyOrganizationNameMax).nullish(),
   "fullName": zod.string().min(createBookingBodyFullNameMin).max(createBookingBodyFullNameMax),
   "phone": zod.string().min(createBookingBodyPhoneMin).max(createBookingBodyPhoneMax),
   "email": zod.string().nullish(),
@@ -74,7 +80,7 @@ export const CreateBookingBody = zod.object({
   "eventDate": zod.coerce.date(),
   "startTime": zod.string().regex(createBookingBodyStartTimeRegExp),
   "endTime": zod.string().nullish(),
-  "durationHours": zod.number().min(1).max(createBookingBodyDurationHoursMax).nullish(),
+  "durationHours": zod.number().min(createBookingBodyDurationHoursMin).max(createBookingBodyDurationHoursMax).multipleOf(createBookingBodyDurationHoursMultipleOf),
   "venue": zod.string().min(createBookingBodyVenueMin).max(createBookingBodyVenueMax),
   "location": zod.string().min(createBookingBodyLocationMin).max(createBookingBodyLocationMax),
   "guestCount": zod.number().min(1).max(createBookingBodyGuestCountMax),
@@ -92,7 +98,12 @@ export const CreateBookingResponse = zod.object({
   "id": zod.number(),
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
-  "potentialConflict": zod.boolean()
+  "potentialConflict": zod.boolean(),
+  "hourlyRateRwf": zod.number(),
+  "totalAmountRwf": zod.number(),
+  "depositPercentage": zod.number(),
+  "depositAmountRwf": zod.number(),
+  "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed'])
 })
 
 
@@ -100,6 +111,8 @@ export const ListBookingsQueryParams = zod.object({
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']).optional(),
   "search": zod.coerce.string().optional()
 })
+
+export const listBookingsResponseOneOrganizationNameMax = 160;
 
 export const listBookingsResponseOneFullNameMin = 2;
 export const listBookingsResponseOneFullNameMax = 120;
@@ -111,7 +124,9 @@ export const listBookingsResponseOneEventTypeMin = 2;
 export const listBookingsResponseOneEventTypeMax = 80;
 
 export const listBookingsResponseOneStartTimeRegExp = new RegExp('^([01]\\d|2[0-3]):[0-5]\\d$');
+export const listBookingsResponseOneDurationHoursMin = 2;
 export const listBookingsResponseOneDurationHoursMax = 24;
+export const listBookingsResponseOneDurationHoursMultipleOf = 1;
 
 export const listBookingsResponseOneVenueMin = 2;
 export const listBookingsResponseOneVenueMax = 160;
@@ -134,6 +149,8 @@ export const listBookingsResponseOneNotesMax = 2000;
 export const listBookingsResponseOneEarlyRequestDefault = false;
 
 export const ListBookingsResponseItem = zod.object({
+  "customerType": zod.enum(['individual', 'organization']),
+  "organizationName": zod.string().max(listBookingsResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(listBookingsResponseOneFullNameMin).max(listBookingsResponseOneFullNameMax),
   "phone": zod.string().min(listBookingsResponseOnePhoneMin).max(listBookingsResponseOnePhoneMax),
   "email": zod.string().nullish(),
@@ -142,7 +159,7 @@ export const ListBookingsResponseItem = zod.object({
   "eventDate": zod.coerce.date(),
   "startTime": zod.string().regex(listBookingsResponseOneStartTimeRegExp),
   "endTime": zod.string().nullish(),
-  "durationHours": zod.number().min(1).max(listBookingsResponseOneDurationHoursMax).nullish(),
+  "durationHours": zod.number().min(listBookingsResponseOneDurationHoursMin).max(listBookingsResponseOneDurationHoursMax).multipleOf(listBookingsResponseOneDurationHoursMultipleOf),
   "venue": zod.string().min(listBookingsResponseOneVenueMin).max(listBookingsResponseOneVenueMax),
   "location": zod.string().min(listBookingsResponseOneLocationMin).max(listBookingsResponseOneLocationMax),
   "guestCount": zod.number().min(1).max(listBookingsResponseOneGuestCountMax),
@@ -159,6 +176,12 @@ export const ListBookingsResponseItem = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
+  "hourlyRateRwf": zod.number(),
+  "totalAmountRwf": zod.number(),
+  "depositPercentage": zod.number(),
+  "depositAmountRwf": zod.number(),
+  "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
+  "paymentMethod": zod.enum(['mpesa']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -174,6 +197,8 @@ export const GetBookingParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getBookingResponseOneOrganizationNameMax = 160;
+
 export const getBookingResponseOneFullNameMin = 2;
 export const getBookingResponseOneFullNameMax = 120;
 
@@ -184,7 +209,9 @@ export const getBookingResponseOneEventTypeMin = 2;
 export const getBookingResponseOneEventTypeMax = 80;
 
 export const getBookingResponseOneStartTimeRegExp = new RegExp('^([01]\\d|2[0-3]):[0-5]\\d$');
+export const getBookingResponseOneDurationHoursMin = 2;
 export const getBookingResponseOneDurationHoursMax = 24;
+export const getBookingResponseOneDurationHoursMultipleOf = 1;
 
 export const getBookingResponseOneVenueMin = 2;
 export const getBookingResponseOneVenueMax = 160;
@@ -207,6 +234,8 @@ export const getBookingResponseOneNotesMax = 2000;
 export const getBookingResponseOneEarlyRequestDefault = false;
 
 export const GetBookingResponse = zod.object({
+  "customerType": zod.enum(['individual', 'organization']),
+  "organizationName": zod.string().max(getBookingResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(getBookingResponseOneFullNameMin).max(getBookingResponseOneFullNameMax),
   "phone": zod.string().min(getBookingResponseOnePhoneMin).max(getBookingResponseOnePhoneMax),
   "email": zod.string().nullish(),
@@ -215,7 +244,7 @@ export const GetBookingResponse = zod.object({
   "eventDate": zod.coerce.date(),
   "startTime": zod.string().regex(getBookingResponseOneStartTimeRegExp),
   "endTime": zod.string().nullish(),
-  "durationHours": zod.number().min(1).max(getBookingResponseOneDurationHoursMax).nullish(),
+  "durationHours": zod.number().min(getBookingResponseOneDurationHoursMin).max(getBookingResponseOneDurationHoursMax).multipleOf(getBookingResponseOneDurationHoursMultipleOf),
   "venue": zod.string().min(getBookingResponseOneVenueMin).max(getBookingResponseOneVenueMax),
   "location": zod.string().min(getBookingResponseOneLocationMin).max(getBookingResponseOneLocationMax),
   "guestCount": zod.number().min(1).max(getBookingResponseOneGuestCountMax),
@@ -232,6 +261,12 @@ export const GetBookingResponse = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
+  "hourlyRateRwf": zod.number(),
+  "totalAmountRwf": zod.number(),
+  "depositPercentage": zod.number(),
+  "depositAmountRwf": zod.number(),
+  "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
+  "paymentMethod": zod.enum(['mpesa']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -250,6 +285,8 @@ export const UpdateBookingBody = zod.object({
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled'])
 })
 
+export const updateBookingResponseOneOrganizationNameMax = 160;
+
 export const updateBookingResponseOneFullNameMin = 2;
 export const updateBookingResponseOneFullNameMax = 120;
 
@@ -260,7 +297,9 @@ export const updateBookingResponseOneEventTypeMin = 2;
 export const updateBookingResponseOneEventTypeMax = 80;
 
 export const updateBookingResponseOneStartTimeRegExp = new RegExp('^([01]\\d|2[0-3]):[0-5]\\d$');
+export const updateBookingResponseOneDurationHoursMin = 2;
 export const updateBookingResponseOneDurationHoursMax = 24;
+export const updateBookingResponseOneDurationHoursMultipleOf = 1;
 
 export const updateBookingResponseOneVenueMin = 2;
 export const updateBookingResponseOneVenueMax = 160;
@@ -283,6 +322,8 @@ export const updateBookingResponseOneNotesMax = 2000;
 export const updateBookingResponseOneEarlyRequestDefault = false;
 
 export const UpdateBookingResponse = zod.object({
+  "customerType": zod.enum(['individual', 'organization']),
+  "organizationName": zod.string().max(updateBookingResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(updateBookingResponseOneFullNameMin).max(updateBookingResponseOneFullNameMax),
   "phone": zod.string().min(updateBookingResponseOnePhoneMin).max(updateBookingResponseOnePhoneMax),
   "email": zod.string().nullish(),
@@ -291,7 +332,7 @@ export const UpdateBookingResponse = zod.object({
   "eventDate": zod.coerce.date(),
   "startTime": zod.string().regex(updateBookingResponseOneStartTimeRegExp),
   "endTime": zod.string().nullish(),
-  "durationHours": zod.number().min(1).max(updateBookingResponseOneDurationHoursMax).nullish(),
+  "durationHours": zod.number().min(updateBookingResponseOneDurationHoursMin).max(updateBookingResponseOneDurationHoursMax).multipleOf(updateBookingResponseOneDurationHoursMultipleOf),
   "venue": zod.string().min(updateBookingResponseOneVenueMin).max(updateBookingResponseOneVenueMax),
   "location": zod.string().min(updateBookingResponseOneLocationMin).max(updateBookingResponseOneLocationMax),
   "guestCount": zod.number().min(1).max(updateBookingResponseOneGuestCountMax),
@@ -308,6 +349,12 @@ export const UpdateBookingResponse = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
+  "hourlyRateRwf": zod.number(),
+  "totalAmountRwf": zod.number(),
+  "depositPercentage": zod.number(),
+  "depositAmountRwf": zod.number(),
+  "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
+  "paymentMethod": zod.enum(['mpesa']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({

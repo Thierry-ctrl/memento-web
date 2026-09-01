@@ -6,10 +6,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { BookingStatus } from './bookingStatus';
+import type { PaymentStatus } from './paymentStatus';
 
 export interface BookingConfirmation {
   id: number;
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
+  hourlyRateRwf: number;
+  totalAmountRwf: number;
+  depositPercentage: number;
+  depositAmountRwf: number;
+  paymentStatus: PaymentStatus;
 }

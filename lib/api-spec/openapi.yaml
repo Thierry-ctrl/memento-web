@@ -229,6 +229,12 @@ components:
     BookingStatus:
       type: string
       enum: [pending, contacted, confirmed, declined, cancelled]
+    CustomerType:
+      type: string
+      enum: [individual, organization]
+    PaymentStatus:
+      type: string
+      enum: [not_due, due, paid, failed]
     SiteSettings:
       type: object
       required: [bookingOpeningDate, earlyBookingMode]
@@ -238,8 +244,11 @@ components:
     BookingInput:
       type: object
       required:
-        [fullName, phone, preferredContactMethod, eventType, eventDate, startTime, venue, location, guestCount, printFormat, backdropPreference, consent]
+        [customerType, fullName, phone, preferredContactMethod, eventType, eventDate, startTime, durationHours, venue, location, guestCount, printFormat, backdropPreference, consent]
       properties:
+        customerType:
+          $ref: "#/components/schemas/CustomerType"
+        organizationName: { type: ["string", "null"], maxLength: 160 }
         fullName: { type: string, minLength: 2, maxLength: 120 }
         phone: { type: string, minLength: 7, maxLength: 30 }
         email: { type: ["string", "null"] }
@@ -248,7 +257,7 @@ components:
         eventDate: { type: string, format: date }
         startTime: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" }
         endTime: { type: ["string", "null"] }
-        durationHours: { type: ["number", "null"], minimum: 1, maximum: 24 }
+        durationHours: { type: number, minimum: 2, maximum: 24, multipleOf: 1 }
         venue: { type: string, minLength: 2, maxLength: 160 }
         location: { type: string, minLength: 2, maxLength: 120 }
         guestCount: { type: number, minimum: 1, maximum: 10000 }
@@ -262,13 +271,19 @@ components:
         earlyRequest: { type: boolean, default: false }
     BookingConfirmation:
       type: object
-      required: [id, reference, status, potentialConflict]
+      required: [id, reference, status, potentialConflict, hourlyRateRwf, totalAmountRwf, depositPercentage, depositAmountRwf, paymentStatus]
       properties:
         id: { type: number }
         reference: { type: string }
         status:
           $ref: "#/components/schemas/BookingStatus"
         potentialConflict: { type: boolean }
+        hourlyRateRwf: { type: number }
+        totalAmountRwf: { type: number }
+        depositPercentage: { type: number }
+        depositAmountRwf: { type: number }
+        paymentStatus:
+          $ref: "#/components/schemas/PaymentStatus"
     AdminNote:
       type: object
       required: [id, note, createdAt]
@@ -280,13 +295,20 @@ components:
       allOf:
         - $ref: "#/components/schemas/BookingInput"
         - type: object
-          required: [id, reference, status, potentialConflict, createdAt, updatedAt, adminNotes]
+          required: [id, reference, status, potentialConflict, hourlyRateRwf, totalAmountRwf, depositPercentage, depositAmountRwf, paymentStatus, paymentMethod, createdAt, updatedAt, adminNotes]
           properties:
             id: { type: number }
             reference: { type: string }
             status:
               $ref: "#/components/schemas/BookingStatus"
             potentialConflict: { type: boolean }
+            hourlyRateRwf: { type: number }
+            totalAmountRwf: { type: number }
+            depositPercentage: { type: number }
+            depositAmountRwf: { type: number }
+            paymentStatus:
+              $ref: "#/components/schemas/PaymentStatus"
+            paymentMethod: { type: string, enum: [mpesa] }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
             adminNotes:

@@ -19,10 +19,15 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "cancelled",
 ]);
 
+export const customerTypeEnum = pgEnum("customer_type", ["individual", "organization"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["not_due", "due", "paid", "failed"]);
+
 export const bookingRequestsTable = pgTable("booking_requests", {
   id: serial("id").primaryKey(),
   reference: text("reference").notNull().unique(),
   status: bookingStatusEnum("status").notNull().default("pending"),
+  customerType: customerTypeEnum("customer_type").notNull().default("individual"),
+  organizationName: text("organization_name"),
   fullName: text("full_name").notNull(),
   phone: text("phone").notNull(),
   email: text("email"),
@@ -43,6 +48,12 @@ export const bookingRequestsTable = pgTable("booking_requests", {
   consent: boolean("consent").notNull(),
   earlyRequest: boolean("early_request").notNull().default(false),
   potentialConflict: boolean("potential_conflict").notNull().default(false),
+  hourlyRateRwf: integer("hourly_rate_rwf").notNull().default(150000),
+  totalAmountRwf: integer("total_amount_rwf").notNull().default(0),
+  depositPercentage: integer("deposit_percentage").notNull().default(30),
+  depositAmountRwf: integer("deposit_amount_rwf").notNull().default(0),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default("not_due"),
+  paymentMethod: text("payment_method").notNull().default("mpesa"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

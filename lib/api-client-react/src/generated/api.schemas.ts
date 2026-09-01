@@ -20,6 +20,24 @@ export const BookingStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export type CustomerType = typeof CustomerType[keyof typeof CustomerType];
+
+
+export const CustomerType = {
+  individual: 'individual',
+  organization: 'organization',
+} as const;
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+export const PaymentStatus = {
+  not_due: 'not_due',
+  due: 'due',
+  paid: 'paid',
+  failed: 'failed',
+} as const;
+
 export interface SiteSettings {
   bookingOpeningDate: string;
   earlyBookingMode: boolean;
@@ -35,6 +53,12 @@ export const BookingInputPreferredContactMethod = {
 } as const;
 
 export interface BookingInput {
+  customerType: CustomerType;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  organizationName?: string | null;
   /**
      * @minLength 2
      * @maxLength 120
@@ -59,11 +83,10 @@ export interface BookingInput {
   /** @nullable */
   endTime?: string | null;
   /**
-     * @minimum 1
+     * @minimum 2
      * @maximum 24
-     * @nullable
      */
-  durationHours?: number | null;
+  durationHours: number;
   /**
      * @minLength 2
      * @maxLength 160
@@ -114,6 +137,11 @@ export interface BookingConfirmation {
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
+  hourlyRateRwf: number;
+  totalAmountRwf: number;
+  depositPercentage: number;
+  depositAmountRwf: number;
+  paymentStatus: PaymentStatus;
 }
 
 export interface AdminNote {
@@ -122,11 +150,24 @@ export interface AdminNote {
   createdAt: string;
 }
 
+export type BookingPaymentMethod = typeof BookingPaymentMethod[keyof typeof BookingPaymentMethod];
+
+
+export const BookingPaymentMethod = {
+  mpesa: 'mpesa',
+} as const;
+
 export type Booking = BookingInput & {
   id: number;
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
+  hourlyRateRwf: number;
+  totalAmountRwf: number;
+  depositPercentage: number;
+  depositAmountRwf: number;
+  paymentStatus: PaymentStatus;
+  paymentMethod: BookingPaymentMethod;
   createdAt: string;
   updatedAt: string;
   adminNotes: AdminNote[];

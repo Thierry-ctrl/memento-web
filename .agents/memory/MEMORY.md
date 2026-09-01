@@ -1,0 +1,1 @@
+- [OpenAPI integer code generation](openapi-integer-codegen.md) — use numeric contracts plus boundary validation because generated z.int() is incompatible with installed Zod.

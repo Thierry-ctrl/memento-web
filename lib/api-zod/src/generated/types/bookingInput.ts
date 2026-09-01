@@ -6,8 +6,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { BookingInputPreferredContactMethod } from './bookingInputPreferredContactMethod';
+import type { CustomerType } from './customerType';
 
 export interface BookingInput {
+  customerType: CustomerType;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  organizationName?: string | null;
   /**
      * @minLength 2
      * @maxLength 120
@@ -32,11 +39,10 @@ export interface BookingInput {
   /** @nullable */
   endTime?: string | null;
   /**
-     * @minimum 1
+     * @minimum 2
      * @maximum 24
-     * @nullable
      */
-  durationHours?: number | null;
+  durationHours: number;
   /**
      * @minLength 2
      * @maxLength 160

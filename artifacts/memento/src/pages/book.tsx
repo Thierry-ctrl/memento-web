@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useScrollReveal } from "@/hooks/use-scroll-reveal"
 
 const bookingSchema = z.object({
+  customerType: z.enum(["individual", "organization"]),
+  organizationName: z.string().max(160).optional().nullable(),
   fullName: z.string().min(2, "Name is required").max(120),
   phone: z.string().min(7, "Valid phone required").max(30),
   email: z.string().email("Valid email required").or(z.literal("")).nullable(),
@@ -22,7 +24,7 @@ const bookingSchema = z.object({
   eventDate: z.string().min(1, "Date required"), // simple string for now
   startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format HH:MM"),
   endTime: z.string().optional().nullable(),
-  durationHours: z.coerce.number().min(1).max(24).optional().nullable(),
+  durationHours: z.coerce.number().int("Use whole hours").min(2, "Minimum booking is 2 hours").max(24),
   venue: z.string().min(2, "Venue required").max(160),
   location: z.string().min(2, "Location required").max(120),
   guestCount: z.coerce.number().min(1, "Guest count required"),
@@ -34,6 +36,14 @@ const bookingSchema = z.object({
   consent: z.boolean().refine(val => val === true, "Consent required"),
   website: z.string().optional().nullable(), // honeypot
   earlyRequest: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.customerType === "organization" && !data.organizationName?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["organizationName"],
+      message: "Organization name is required",
+    })
+  }
 })
 
 type BookingFormValues = z.infer<typeof bookingSchema>
@@ -43,7 +53,11 @@ export default function Book() {
   const [step, setStep] = React.useState(1)
   const { toast } = useToast()
   const createBooking = useCreateBooking()
-  const [confirmation, setConfirmation] = React.useState<{ reference: string } | null>(null)
+  const [confirmation, setConfirmation] = React.useState<{
+    reference: string
+    totalAmountRwf: number
+    depositAmountRwf: number
+  } | null>(null)
 
   // Retrieve draft from localStorage if available
   const savedData = React.useMemo(() => {
@@ -57,7 +71,9 @@ export default function Book() {
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: savedData || {
+    defaultValues: {
+      customerType: "individual",
+      organizationName: "",
       fullName: "",
       phone: "",
       email: "",
@@ -65,6 +81,7 @@ export default function Book() {
       eventType: "",
       eventDate: "",
       startTime: "18:00",
+      durationHours: 2,
       venue: "",
       location: "",
       guestCount: 100,
@@ -73,6 +90,7 @@ export default function Book() {
       addOns: [],
       notes: "",
       consent: false,
+      ...savedData,
     },
     mode: "onChange",
   })
@@ -87,12 +105,17 @@ export default function Book() {
 
   const nextStep = async () => {
     let fieldsToValidate: any[] = []
-    if (step === 1) fieldsToValidate = ["fullName", "phone", "email", "preferredContactMethod"]
-    if (step === 2) fieldsToValidate = ["eventType", "eventDate", "startTime", "venue", "location", "guestCount"]
+    if (step === 1) fieldsToValidate = ["customerType", "organizationName", "fullName", "phone", "email", "preferredContactMethod"]
+    if (step === 2) fieldsToValidate = ["eventType", "eventDate", "startTime", "durationHours", "venue", "location", "guestCount"]
     if (step === 3) fieldsToValidate = ["printFormat", "backdropPreference"]
     
-    const isValid = await form.trigger(fieldsToValidate as any)
+    const isValid = await form.trigger(fieldsToValidate as any, { shouldFocus: true })
     if (isValid) setStep(s => Math.min(s + 1, 5))
+    else toast({
+      title: "Please check this step",
+      description: "Complete the highlighted required fields before continuing.",
+      variant: "destructive",
+    })
   }
 
   const prevStep = () => setStep(s => Math.max(s - 1, 1))
@@ -102,14 +125,19 @@ export default function Book() {
     
     createBooking.mutate({ data }, {
       onSuccess: (result) => {
-        setConfirmation({ reference: result.reference })
+        setConfirmation({
+          reference: result.reference,
+          totalAmountRwf: result.totalAmountRwf,
+          depositAmountRwf: result.depositAmountRwf,
+        })
         localStorage.removeItem("memento_booking_draft")
         window.scrollTo(0, 0)
       },
-      onError: () => {
+      onError: (error: unknown) => {
+        const apiError = error as { status?: number; data?: { error?: string } }
         toast({
-          title: "Submission Failed",
-          description: "There was an error submitting your request. Please try again or contact us directly.",
+          title: apiError.status === 409 ? "Time unavailable" : "Submission failed",
+          description: apiError.data?.error ?? "There was an error submitting your request. Please try again or contact us directly.",
           variant: "destructive"
         })
       }
@@ -125,6 +153,12 @@ export default function Book() {
           <p className="text-primary/70 font-light leading-relaxed mb-12">
             We have received your booking request. Your reference is <strong>{confirmation.reference}</strong>. We will review availability and contact you personally. Submission does not guarantee confirmation.
           </p>
+          <div className="border border-primary/15 bg-card p-6 mb-10 text-left">
+            <p className="eyebrow text-primary/50 mb-3">Estimated booking</p>
+            <p className="text-primary">Total: RWF {confirmation.totalAmountRwf.toLocaleString()}</p>
+            <p className="text-primary">30% deposit: RWF {confirmation.depositAmountRwf.toLocaleString()}</p>
+            <p className="text-sm text-primary/60 mt-3">No payment is due yet. After Memento approves availability, we will send M‑Pesa payment instructions.</p>
+          </div>
           <a href="https://wa.me/250788628735" target="_blank" rel="noreferrer" className="inline-block mb-5 font-sans uppercase tracking-widest text-xs border-b border-primary">Follow up on WhatsApp</a>
           <Link href="/">
             <Button variant="outline" className="rounded-none border-primary uppercase tracking-widest text-xs h-12 px-8">Return Home</Button>
@@ -162,15 +196,45 @@ export default function Book() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
             {/* Step 1: Personal */}
-            <div className={step === 1 ? "block fade-up" : "hidden"}>
+            <div className={step === 1 ? "block" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Who are we speaking with?</h2>
               <div className="space-y-8">
+                <FormField
+                  control={form.control}
+                  name="customerType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Booking For</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="individual">An Individual</SelectItem>
+                          <SelectItem value="organization">An Organization</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {form.watch("customerType") === "organization" && (
+                  <FormField
+                    control={form.control}
+                    name="organizationName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Organization Name</FormLabel>
+                        <FormControl><Input placeholder="Organization name" {...field} value={field.value || ""} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name / Organization</FormLabel>
+                      <FormLabel>Contact Person’s Full Name</FormLabel>
                       <FormControl><Input placeholder="Jane Doe" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -224,7 +288,7 @@ export default function Book() {
             </div>
 
             {/* Step 2: Event Details */}
-            <div className={step === 2 ? "block fade-up" : "hidden"}>
+            <div className={step === 2 ? "block" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Tell us about the gathering.</h2>
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -250,6 +314,27 @@ export default function Book() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="durationHours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hours Required</FormLabel>
+                        <FormControl><Input type="number" min={2} max={24} step={1} {...field} /></FormControl>
+                        <p className="text-xs text-primary/55 mt-2">Minimum 2 hours · RWF 150,000 per hour</p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="bg-card border border-primary/10 p-5">
+                  <p className="eyebrow text-primary/50 mb-2">Price estimate</p>
+                  <p className="font-serif text-2xl text-primary">
+                    RWF {((Number(form.watch("durationHours")) || 0) * 150000).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-primary/60 mt-1">
+                    30% deposit after approval: RWF {Math.round((Number(form.watch("durationHours")) || 0) * 150000 * 0.3).toLocaleString()}
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <FormField
@@ -303,7 +388,7 @@ export default function Book() {
             </div>
 
             {/* Step 3: Experience */}
-            <div className={step === 3 ? "block fade-up" : "hidden"}>
+            <div className={step === 3 ? "block" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Curate your setup.</h2>
               <div className="space-y-12">
                 <FormField
@@ -373,7 +458,7 @@ export default function Book() {
             </div>
 
             {/* Step 4: Notes */}
-            <div className={step === 4 ? "block fade-up" : "hidden"}>
+            <div className={step === 4 ? "block" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Any additional details?</h2>
               <div className="space-y-8">
                 <FormField
@@ -424,25 +509,38 @@ export default function Book() {
             </div>
 
             {/* Step 5: Review */}
-            <div className={step === 5 ? "block fade-up" : "hidden"}>
+            <div className={step === 5 ? "block" : "hidden"}>
               <h2 className="font-serif text-4xl text-primary mb-10">Review & Submit</h2>
               
               <div className="bg-card border border-primary/10 p-8 mb-8 space-y-6 print-lift">
                 <div className="grid grid-cols-2 gap-y-4 text-sm">
                   <div className="text-primary/60">Name</div>
                   <div className="text-primary">{form.getValues("fullName")}</div>
+
+                  <div className="text-primary/60">Booking for</div>
+                  <div className="text-primary">
+                    {form.getValues("customerType") === "organization"
+                      ? form.getValues("organizationName")
+                      : "Individual"}
+                  </div>
                   
                   <div className="text-primary/60">Event</div>
                   <div className="text-primary">{form.getValues("eventType")}</div>
                   
                   <div className="text-primary/60">Date & Time</div>
-                  <div className="text-primary">{form.getValues("eventDate")} at {form.getValues("startTime")}</div>
+                  <div className="text-primary">{form.getValues("eventDate")} at {form.getValues("startTime")} for {form.getValues("durationHours")} hours</div>
                   
                   <div className="text-primary/60">Venue</div>
                   <div className="text-primary">{form.getValues("venue")}, {form.getValues("location")}</div>
                   
                   <div className="text-primary/60">Setup</div>
                   <div className="text-primary">{form.getValues("printFormat")} with {form.getValues("backdropPreference")}</div>
+
+                  <div className="text-primary/60">Estimated total</div>
+                  <div className="text-primary">RWF {(Number(form.getValues("durationHours")) * 150000).toLocaleString()}</div>
+
+                  <div className="text-primary/60">Deposit after approval</div>
+                  <div className="text-primary">30% · RWF {Math.round(Number(form.getValues("durationHours")) * 150000 * 0.3).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -456,7 +554,7 @@ export default function Book() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-xs normal-case tracking-normal">
-                        I understand that this is a request for availability, not a confirmed booking. Memento Kigali will contact me to provide a quote and finalize the reservation.
+                        I understand that this is an availability request, not a confirmed booking. If Memento approves the request, I will receive instructions to pay the 30% deposit through M‑Pesa.
                       </FormLabel>
                       <FormMessage />
                     </div>

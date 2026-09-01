@@ -52,6 +52,9 @@ function BookingDetails({ id, onClose }: { id: number, onClose: () => void }) {
         <div>
           <p className="text-[10px] uppercase tracking-widest text-primary/50">Client</p>
           <p className="text-primary">{booking.fullName}</p>
+            <p className="text-primary/70 capitalize">
+              {booking.customerType === "organization" ? booking.organizationName : "Individual booking"}
+            </p>
           <p className="text-primary/70">{booking.email || 'No email'}</p>
           <p className="text-primary/70">{booking.phone}</p>
         </div>
@@ -60,7 +63,29 @@ function BookingDetails({ id, onClose }: { id: number, onClose: () => void }) {
           <p className="text-primary">{booking.eventType}</p>
           <p className="text-primary/70">{format(new Date(booking.eventDate), 'MMM d, yyyy')}</p>
           <p className="text-primary/70">{booking.startTime} {booking.endTime ? `- ${booking.endTime}` : booking.durationHours ? `(${booking.durationHours} hrs)` : ''}</p>
+           <p className="text-primary/70">{booking.durationHours} hours</p>
           <p className="text-primary/70">{booking.guestCount} guests</p>
+        </div>
+
+        <div className="col-span-2 border border-primary/10 bg-card p-4">
+          <p className="text-[10px] uppercase tracking-widest text-primary/50 mb-3">Pricing & Deposit</p>
+          <div className="grid grid-cols-2 gap-2">
+            <p className="text-primary/60">Rate</p>
+            <p className="text-primary text-right">RWF {booking.hourlyRateRwf.toLocaleString()} / hour</p>
+            <p className="text-primary/60">Total</p>
+            <p className="text-primary text-right">RWF {booking.totalAmountRwf.toLocaleString()}</p>
+            <p className="text-primary/60">Deposit ({booking.depositPercentage}%)</p>
+            <p className="text-primary text-right">RWF {booking.depositAmountRwf.toLocaleString()}</p>
+            <p className="text-primary/60">M‑Pesa status</p>
+            <p className="text-primary text-right uppercase text-xs tracking-widest">
+              {booking.paymentStatus === "not_due" ? "Not due" : booking.paymentStatus}
+            </p>
+          </div>
+          {booking.paymentStatus === "due" && (
+            <p className="text-xs text-primary/60 mt-3 border-t border-primary/10 pt-3">
+              Availability is approved. Send the client M‑Pesa payment instructions for the deposit.
+            </p>
+          )}
         </div>
         <div className="col-span-2">
           <p className="text-[10px] uppercase tracking-widest text-primary/50">Location</p>
@@ -306,6 +331,7 @@ export default function Admin() {
                 <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Reference</th>
                 <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Client</th>
                 <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Event Date</th>
+                <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Estimate</th>
                 <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Status</th>
                 <th className="py-4 px-4 font-sans text-[10px] tracking-[0.2em] uppercase text-primary/50 font-normal">Conflicts</th>
                 <th className="py-4 px-4 text-right"></th>
@@ -313,20 +339,26 @@ export default function Admin() {
             </thead>
             <tbody>
               {isLoadingBookings ? (
-                <tr><td colSpan={6} className="py-8 text-center text-primary/40 text-sm">Loading bookings...</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-primary/40 text-sm">Loading bookings...</td></tr>
               ) : bookings?.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-primary/40 text-sm">No bookings found.</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-primary/40 text-sm">No bookings found.</td></tr>
               ) : (
                 bookings?.map((booking) => (
                   <tr key={booking.id} className="border-b border-primary/5 hover:bg-primary/5 transition-colors group">
                     <td className="py-4 px-4 font-mono text-xs text-primary/60">{booking.reference}</td>
                     <td className="py-4 px-4">
                       <p className="text-sm text-primary">{booking.fullName}</p>
-                      <p className="text-xs text-primary/50">{booking.eventType}</p>
+                      <p className="text-xs text-primary/50">
+                        {booking.customerType === "organization" ? booking.organizationName : "Individual"} · {booking.eventType}
+                      </p>
                     </td>
                     <td className="py-4 px-4">
                       <p className="text-sm text-primary">{format(new Date(booking.eventDate), 'MMM d, yyyy')}</p>
                       <p className="text-xs text-primary/50">{booking.startTime}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <p className="text-sm text-primary">RWF {booking.totalAmountRwf.toLocaleString()}</p>
+                      <p className="text-xs text-primary/50">{booking.durationHours} hrs · {booking.paymentStatus === "due" ? "Deposit due" : "No payment due"}</p>
                     </td>
                     <td className="py-4 px-4">
                       <Select 
