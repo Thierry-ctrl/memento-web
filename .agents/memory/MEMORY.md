@@ -1,1 +1,2 @@
 - [OpenAPI integer code generation](openapi-integer-codegen.md) — use numeric contracts plus boundary validation because generated z.int() is incompatible with installed Zod.
+- [Mobile menu containing block](mobile-menu-containing-block.md) — portal overlays outside the backdrop-filtered header so fixed positioning covers the viewport.

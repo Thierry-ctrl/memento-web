@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
 import { useAuth, useClerk } from "@clerk/react";
 import { Button } from "./ui/button";
@@ -23,6 +24,17 @@ export function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
 
   const navLinks = [
     { label: "Experiences", href: "/experiences" },
@@ -54,7 +66,44 @@ export function Navbar() {
     </>
   );
 
+  const mobileMenu = mobileMenuOpen
+    ? createPortal(
+        <div
+          className="fixed inset-0 z-40 overflow-y-auto px-6 md:hidden"
+          style={{ backgroundColor: "hsl(38 31% 93%)" }}
+        >
+          <nav className="flex min-h-full flex-col items-center justify-center gap-7 pb-12 pt-28" aria-label="Mobile navigation">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.href} 
+                href={link.href}
+                className={cn(
+                  "font-serif text-4xl py-2",
+                  location === link.href ? "text-primary" : "text-primary/70"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link href="/book" className="mt-5">
+              <Button variant="outline" className="rounded-none tracking-widest uppercase text-sm h-14 px-10 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors duration-300">
+                Request a date
+              </Button>
+            </Link>
+            {isSignedIn && (
+              <div className="flex flex-col items-center gap-4 mt-5 pt-6 border-t border-primary/10 w-48">
+                <Link href="/admin" className="font-serif text-3xl text-primary/70 py-2">Admin</Link>
+                <button onClick={() => signOut()} className="font-serif text-3xl text-primary/70 py-2">Sign Out</button>
+              </div>
+            )}
+          </nav>
+        </div>,
+        document.body,
+      )
+    : null;
+
   return (
+    <>
     <header 
       className={cn(
         "fixed top-0 inset-x-0 z-50 transition-all duration-700 ease-in-out px-5 md:px-12 py-4 flex items-center justify-between",
@@ -82,43 +131,17 @@ export function Navbar() {
 
       {/* Mobile Menu Toggle */}
       <button 
-        className="md:hidden z-50 text-primary"
+        className="md:hidden z-50 text-primary p-2 -mr-2"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
          aria-expanded={mobileMenuOpen}
       >
-        {mobileMenuOpen ? <X size={24} strokeWidth={1} /> : <Menu size={24} strokeWidth={1} />}
+        {mobileMenuOpen ? <X size={32} strokeWidth={1} /> : <Menu size={32} strokeWidth={1} />}
       </button>
 
       {/* Mobile Nav */}
-      <div className={cn(
-        "fixed inset-0 bg-background z-40 flex flex-col items-center justify-center gap-8 transition-all duration-500 ease-in-out md:hidden",
-        mobileMenuOpen ? "visible translate-y-0 opacity-100" : "invisible pointer-events-none -translate-y-4 opacity-0"
-      )}>
-        {navLinks.map((link) => (
-          <Link 
-            key={link.href} 
-            href={link.href}
-            className={cn(
-              "font-serif text-4xl",
-              location === link.href ? "text-primary" : "text-primary/70"
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
-        <Link href="/book" className="mt-4">
-            <Button variant="outline" className="rounded-none tracking-widest uppercase text-xs h-12 px-8 border-primary/30">
-             Request a date
-          </Button>
-        </Link>
-        {isSignedIn && (
-          <div className="flex flex-col items-center gap-6 mt-8 pt-8 border-t border-primary/10 w-32">
-            <Link href="/admin" className="font-serif text-2xl text-primary/70">Admin</Link>
-            <button onClick={() => signOut()} className="font-serif text-2xl text-primary/70">Sign Out</button>
-          </div>
-        )}
-      </div>
     </header>
+    {mobileMenu}
+    </>
   );
 }

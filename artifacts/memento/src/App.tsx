@@ -151,10 +151,14 @@ function ClerkProviderWithRoutes() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  useEffect(() => {
     const routeMeta: Record<string, { title: string; description: string }> = {
       "/": { title: "Memento Kigali — Printed. Shared. Remembered.", description: "A considered photo experience for gatherings in Kigali, made physical." },
       "/experiences": { title: "Experiences — Memento Kigali", description: "Explore Memento photo experiences for weddings, celebrations, brands, and gatherings." },
-      "/gallery": { title: "The Archive — Memento Kigali", description: "A selection of Memento's editorial photo experience placeholders." },
+      "/gallery": { title: "The Archive — Memento Kigali", description: "A selection of portraits, celebrations, prints, and shared moments from Memento Kigali." },
       "/about": { title: "The Story — Memento Kigali", description: "Why Memento believes in the lasting value of a physical print." },
       "/book": { title: "Request a Date — Memento Kigali", description: "Tell Memento about your gathering and request availability." },
       "/contact": { title: "Contact — Memento Kigali", description: "Reach Memento Kigali by WhatsApp, phone, or booking request." },
