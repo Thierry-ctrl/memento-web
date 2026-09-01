@@ -1,0 +1,92 @@
+The prototype has a strong visual foundation and feels recognizably Memento. The homepage hero is especially successful. However, it is not ready to present as a finished website yet because several visible and functional issues would distract the client.
+
+I tested the live prototype on desktop and a 400px mobile viewport, including the Experiences page, navigation, Gallery, Story, Contact and the first two booking steps. I did not submit a booking.
+
+## What’s working
+
+- The **Instrument Serif, Manrope and handwritten accent** create the editorial, nostalgic and quietly luxurious feeling the client requested.
+- Warm ivory, ink and restrained faded rose feel sophisticated rather than wedding-only or “Canva-like.”
+- The homepage hero is compelling. “Keep the moment” and “Printed. Shared. Remembered.” communicate the proposition quickly.
+- Fine rules, negative space and the subtle grid successfully reference editorial posters and considered packaging.
+- The Experiences page correctly explains that layouts and print formats can adapt per event—there is no misleading promise of one fixed branded strip.
+- The primary package includes the agreed essentials.
+- “Memento Experience” and “For Brands & Gatherings” are sensible customer-facing categories.
+- Calls to action consistently lead toward requesting a date.
+- The five-step booking structure is much less intimidating than one long form.
+- The booking language correctly says it is an availability request rather than an automatic confirmation.
+- WhatsApp and telephone numbers are correct and consistent.
+- The header, footer and overall visual language remain cohesive across pages.
+
+## Fix before the next client presentation
+
+1. **Repair the mobile menu**
+
+   On mobile, the navigation opens directly over “Make it physical.” The links collide with the headline and there is no proper menu panel.
+
+   It needs a full-screen or solid ivory overlay, enough spacing between links, a visible close button and a prominent “Request a Date” action. Background scrolling should be locked while it is open.
+
+2. **Reset the scroll position when changing pages**
+
+   When I opened Gallery and The Story after scrolling another page, each new page retained the previous scroll position. The Story opened near its footer, and Gallery initially appeared completely blank.
+
+   Every route change should automatically return the visitor to the top.
+
+3. **Fix Gallery rendering**
+
+   The Gallery heading appears, but much of the page remains visibly empty even while scrolling. The accessibility structure says images exist, so the reveal/lazy-loading animation may be leaving them invisible.
+
+   This is a launch blocker because Gallery is essential evidence for a photography business.
+
+4. **Replace the remaining placeholders**
+
+   Visible gaps currently appear on:
+
+   - Homepage portrait/archive sections
+   - Both Experiences package sections
+   - The Gallery
+   - The Story
+
+   The empty areas make the editorial spacing feel accidental rather than luxurious. Use selected candid photographs, physical prints, a photo strip and one tactile keepsake detail.
+
+5. **Confirm the public pricing**
+
+   The booking form currently displays:
+
+   - RWF 150,000 per hour
+   - Two-hour minimum
+   - 30% deposit after approval
+
+   These are significant commercial decisions. They should only remain if Winnie explicitly approved them. Otherwise, show “Pricing confirmed after reviewing your request,” because the rest of the website promises a tailored quote.
+
+## Content that needs approval
+
+- The add-ons currently read **Guestbook Archive, Custom Backdrops, Extended Hours and Bespoke Folios**. The agreed list was:
+
+  - Keepsakes & Memory Books
+  - Custom Backdrops
+  - Branded Experiences
+
+  Guestbook Archive is a beautiful interpretation of Memory Books, but Branded Experiences is missing. Extended Hours and Bespoke Folios shouldn’t be advertised unless the client can actually provide them.
+
+- The Story page presents an invented founding narrative: “Memento was born…” and criticizes other booths for “cheap props” and “harsh ring lights.” That sounds unnecessarily negative and may not be the client’s real story. Replace it with a short, client-approved origin and focus on Memento’s beliefs.
+
+- Claims that prints are “waterproof” and “guaranteed not to fade for decades” require evidence from the exact printer and paper supplier. Qualify or remove them.
+
+- “Available for travel nationwide” also needs the client’s approval.
+
+- The Gallery’s Instagram button currently links to generic `instagram.com`, not Memento’s account.
+
+- Add the final Memento email address to Contact and the footer once Winnie creates it.
+
+## Production and booking work still needed
+
+- Enforce unavailable dates and booking conflicts on the server—not only visually.
+- Prevent bookings before the official opening date if that restriction still applies.
+- Notify Memento and the customer after a request.
+- Generate and display the booking reference.
+- Replace Clerk development credentials with a client-owned production account.
+- Add spam/rate protection and test the complete submission.
+- Add the final domain, favicon and social-sharing preview.
+- Keep rose for accents; some smaller rose and grey text currently needs stronger contrast.
+
+My overall assessment: **the creative direction is around 80% there, but the functional/public-ready website is closer to 65–70%**. The best next sequence is mobile navigation → route scrolling → Gallery rendering → approved imagery → copy/package corrections → booking logic and notifications.
