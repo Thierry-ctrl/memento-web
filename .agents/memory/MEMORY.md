@@ -1,2 +1,3 @@
 - [OpenAPI integer code generation](openapi-integer-codegen.md) — use numeric contracts plus boundary validation because generated z.int() is incompatible with installed Zod.
+- [Brand V2 Quiet Archive rules](brand-v2-quiet-archive.md) — palette hexes, Caveat-only-for-notes rule, no heavy ink fields; source is the Figma board.
 - [Mobile menu containing block](mobile-menu-containing-block.md) — portal overlays outside the backdrop-filtered header so fixed positioning covers the viewport.

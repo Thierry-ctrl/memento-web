@@ -34,7 +34,7 @@ export default function Home() {
             </Button>
           </Link>
         </div>
-        <div className="absolute bottom-12 right-12 hidden md:block annotation text-3xl rotate-[-8deg]">made to keep</div>
+        <div className="absolute bottom-12 right-12 hidden md:block annotation text-2xl rotate-[-4deg]">Moment No. 001 — Kigali</div>
       </section>
 
       {/* The Tactile Difference */}
@@ -92,17 +92,17 @@ export default function Home() {
       </section>
 
       {/* Booking CTA */}
-      <section className="py-40 px-6 text-center relative overflow-hidden bg-primary text-primary-foreground">
+      <section className="py-40 px-6 text-center relative overflow-hidden rose-field text-primary border-y border-primary/10">
         <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
-          <p className="eyebrow text-secondary mb-6">For the days worth keeping</p>
+          <p className="eyebrow text-olive mb-6">For the days worth keeping</p>
           <h2 className="font-serif text-5xl md:text-7xl mb-8 leading-tight">
             Give it a place<br /><em>in the archive.</em>
           </h2>
-          <p className="font-light text-primary-foreground/80 text-lg mb-12 max-w-lg">
+          <p className="font-light text-primary/80 text-lg mb-12 max-w-lg">
             Our calendar fills quietly but quickly. Connect with us to curate a bespoke print experience for your upcoming gathering.
           </p>
           <Link href="/book">
-            <Button variant="outline" className="rounded-none border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary tracking-widest uppercase text-xs h-14 px-12 transition-all duration-700 bg-transparent">
+            <Button variant="outline" className="rounded-none border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs h-14 px-12 transition-all duration-700 bg-transparent">
               Inquire Now
             </Button>
           </Link>

@@ -42,6 +42,15 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
+  /* Memento V2 — Quiet Archive palette */
+  --color-ivory: hsl(var(--ivory));
+  --color-ink: hsl(var(--ink));
+  --color-rose: hsl(var(--rose));
+  --color-rose-tint: hsl(var(--rose-tint));
+  --color-olive: hsl(var(--olive));
+  --color-taupe: hsl(var(--taupe));
+  --color-sage: hsl(var(--sage));
+
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-hand: var(--app-font-hand);
@@ -62,7 +71,16 @@
   --elevate-1: rgba(36, 31, 29, 0.03);
   --elevate-2: rgba(36, 31, 29, 0.08);
 
-  --background: 38 31% 93%; /* warm ivory */
+  /* Brand V2 — Quiet Archive */
+  --ivory: 38 37% 93%;     /* #F4EFE7 Warm Ivory — main canvas */
+  --ink: 17 11% 13%;       /* #241F1D Soft Ink — type + contrast */
+  --rose: 8 33% 72%;       /* #CFA6A0 Faded Rose — signature */
+  --rose-tint: 8 51% 86%;  /* #EECFCA Pale Rose Tint — soft field */
+  --olive: 74 13% 33%;     /* #595E48 Muted Olive — natural accent */
+  --taupe: 22 33% 67%;     /* #C7A490 Warm Taupe — heritage warmth */
+  --sage: 86 12% 77%;      /* #C6CCBE Soft Sage — supporting neutral */
+
+  --background: 38 37% 93%; /* warm ivory */
   --foreground: 20 11% 13%; /* warm ink */
 
   --border: 32 15% 66%;
@@ -80,16 +98,16 @@
   --primary: 20 11% 13%;
   --primary-foreground: 38 31% 93%;
 
-  --secondary: 8 30% 72%; /* faded rose */
+  --secondary: 8 33% 72%; /* faded rose */
   --secondary-foreground: 20 11% 13%;
 
   --muted: 33 22% 86%;
   --muted-foreground: 30 8% 30%;
 
-  --accent: 85 7% 64%; /* restrained sage */
+  --accent: 86 12% 77%; /* soft sage */
   --accent-foreground: 20 11% 13%;
 
-  --destructive: 8 30% 72%;
+  --destructive: 8 33% 72%;
   --destructive-foreground: 20 11% 13%;
 
   --app-font-sans: "Manrope", sans-serif;
@@ -139,8 +157,12 @@
   --muted: 20 11% 16%;
   --muted-foreground: 33 22% 86%;
 
-  --accent: 85 7% 64%;
+  --accent: 86 12% 77%;
   --accent-foreground: 20 11% 11%;
+
+  /* Brand surfaces invert with the canvas so fixed fields never pair with flipped text */
+  --rose-tint: 8 12% 18%;
+  --olive: 74 18% 72%;
 
   --destructive: 8 30% 72%;
   --destructive-foreground: 20 11% 11%;
@@ -203,7 +225,16 @@
 }
 
 .print-lift-dark {
-  box-shadow: 10px 12px 0 hsl(var(--accent) / 0.42);
+  box-shadow: 10px 12px 0 hsl(var(--olive) / 0.42);
+}
+
+/* Soft rose field — used instead of heavy ink sections (brand V2) */
+.rose-field {
+  background-color: hsl(var(--rose-tint));
+  background-image:
+    linear-gradient(rgba(36, 31, 29, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 31, 29, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 .stamp {

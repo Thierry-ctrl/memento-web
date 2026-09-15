@@ -28,26 +28,26 @@ export default function About() {
         </div>
       </section>
 
-      <section className="bg-primary text-primary-foreground py-32 px-6 md:px-12">
+      <section className="paper text-primary py-32 px-6 md:px-12 border-y border-primary/10">
          <div className="max-w-4xl mx-auto text-center">
-           <p className="eyebrow text-secondary mb-5">Why it matters</p>
+           <p className="eyebrow text-olive mb-5">Why it matters</p>
           <h2 className="font-serif text-4xl md:text-5xl mb-12">Why Physical Prints Matter</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left">
             <div>
-              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-secondary mb-4">Permanence</h3>
-              <p className="font-light text-primary-foreground/80 text-sm leading-relaxed">
+              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-olive mb-4">Permanence</h3>
+              <p className="font-light text-primary/80 text-sm leading-relaxed">
                 Phones break, clouds get full, and feeds move on. A print exists in the physical world. It demands to be kept, cherished, and revisited.
               </p>
             </div>
             <div>
-              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-secondary mb-4">Presence</h3>
-              <p className="font-light text-primary-foreground/80 text-sm leading-relaxed">
+              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-olive mb-4">Presence</h3>
+              <p className="font-light text-primary/80 text-sm leading-relaxed">
                 The act of waiting for a photo to print pulls people into the present. It creates a shared moment of anticipation and joy you can't get from a screen.
               </p>
             </div>
             <div>
-              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-secondary mb-4">Quality</h3>
-              <p className="font-light text-primary-foreground/80 text-sm leading-relaxed">
+              <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-olive mb-4">Quality</h3>
+              <p className="font-light text-primary/80 text-sm leading-relaxed">
                 We use professional dye-sublimation printers—the industry standard for event photography. The photos emerge dry and ready to be handled, offering a lasting physical archive of your gathering.
               </p>
             </div>
@@ -56,7 +56,7 @@ export default function About() {
       </section>
       
       <section className="py-32 px-6 text-center max-w-2xl mx-auto">
-        <p className="font-hand text-4xl text-secondary mb-6 rotate-[-2deg]">let's make something beautiful</p>
+        <p className="font-serif italic text-4xl text-secondary mb-6">Let's make something beautiful.</p>
         <p className="text-primary/80 font-light">
           Whether you're planning an intimate gathering or a grand celebration, we'd love to help you preserve it.
         </p>

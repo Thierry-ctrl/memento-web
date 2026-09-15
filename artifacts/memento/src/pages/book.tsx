@@ -148,7 +148,7 @@ export default function Book() {
     return (
        <main className="min-h-screen flex items-center justify-center paper px-6 pt-24">
         <div className="max-w-2xl text-center fade-up">
-           <p className="annotation text-3xl mb-6">request received</p>
+           <p className="eyebrow text-olive mb-6">Request received</p>
            <h1 className="font-serif text-5xl text-primary mb-8">Thank <em>you.</em></h1>
           <p className="text-primary/70 font-light leading-relaxed mb-12">
             We have received your booking request. Your reference is <strong>{confirmation.reference}</strong>. We will review availability and contact you personally. Submission does not guarantee confirmation.
