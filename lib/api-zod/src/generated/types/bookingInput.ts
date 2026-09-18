@@ -10,6 +10,10 @@ import type { CustomerType } from './customerType';
 
 export interface BookingInput {
   customerType: CustomerType;
+  /** @nullable */
+  packageId?: string | null;
+  /** @nullable */
+  pricingVersion?: string | null;
   /**
      * @maxLength 160
      * @nullable

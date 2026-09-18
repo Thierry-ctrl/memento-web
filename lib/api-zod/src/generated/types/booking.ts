@@ -7,22 +7,37 @@
  */
 import type { AdminNote } from './adminNote';
 import type { BookingInput } from './bookingInput';
-import type { BookingPaymentMethod } from './bookingPaymentMethod';
+import type { BookingNotificationStatus } from './bookingNotificationStatus';
 import type { BookingStatus } from './bookingStatus';
 import type { PaymentStatus } from './paymentStatus';
 
-export type Booking = BookingInput & {
+export type Booking = BookingInput & ({
   id: number;
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
-  hourlyRateRwf: number;
-  totalAmountRwf: number;
-  depositPercentage: number;
-  depositAmountRwf: number;
+  /** @nullable */
+  packageName?: string | null;
+  /** @nullable */
+  pricingVersion?: string | null;
+  /** @nullable */
+  basePriceRwf?: number | null;
+  /** @nullable */
+  includedHours?: number | null;
+  quoteRequired?: boolean;
+  /** @nullable */
+  hourlyRateRwf: number | null;
+  /** @nullable */
+  totalAmountRwf: number | null;
+  /** @nullable */
+  depositPercentage: number | null;
+  /** @nullable */
+  depositAmountRwf: number | null;
   paymentStatus: PaymentStatus;
-  paymentMethod: BookingPaymentMethod;
+  /** @nullable */
+  paymentMethod: string | null;
+  notificationStatus?: BookingNotificationStatus;
   createdAt: Date;
   updatedAt: Date;
   adminNotes: AdminNote[];
-};
+});

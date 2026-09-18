@@ -1,4 +1,4 @@
-import heroImg from "@assets/generated_images/memento_kigali_hero.jpg";
+import heroImg from "@assets/quiet_archive/memory-book.jpg";
 
 export default function About() {
   return (
@@ -7,7 +7,7 @@ export default function About() {
          <p className="eyebrow text-secondary mb-5">A small manifesto</p>
          <h1 className="font-serif text-6xl md:text-7xl text-primary mb-8">The <em>Story.</em></h1>
         <p className="text-2xl font-serif text-primary/80 italic leading-relaxed">
-          "We take photos as a return ticket to a moment otherwise gone."
+          Because our memories go beyond the camera roll.
         </p>
       </section>
 
@@ -17,13 +17,13 @@ export default function About() {
         </div>
         <div className="flex flex-col gap-6 text-lg font-light text-primary/80 leading-relaxed">
           <p>
-            Memento was born out of a profound appreciation for the physical photograph. In an increasingly digital world, we observed that some of the most beautiful gatherings in Kigali deserved a more permanent record.
+            Memento is a photo experience and memory-keeping business in Kigali. We turn fleeting moments into physical memories that people can hold, share and keep.
           </p>
           <p>
             We believe your memories deserve the same level of care and intention as the rest of your celebration.
           </p>
           <p>
-            Our focus is simple: beautiful portrait lighting, considered aesthetics, and the undeniable magic of a tactile print developing in your hands.
+            Our focus is simple: candid moments, considered details, and the joy of taking a physical print home with you.
           </p>
         </div>
       </section>
@@ -48,7 +48,7 @@ export default function About() {
             <div>
               <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-olive mb-4">Quality</h3>
               <p className="font-light text-primary/80 text-sm leading-relaxed">
-                We use professional dye-sublimation printers—the industry standard for event photography. The photos emerge dry and ready to be handled, offering a lasting physical archive of your gathering.
+                From custom photo layouts to a choice of print format, every detail is considered so your photographs feel like something worth keeping.
               </p>
             </div>
           </div>

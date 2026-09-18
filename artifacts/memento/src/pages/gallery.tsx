@@ -1,71 +1,55 @@
-import studioImg from "@assets/generated_images/memento_kigali_portrait.jpg";
-import galleryImg1 from "@assets/generated_images/memento_kigali_candid.jpg";
-import stripImg from "@assets/generated_images/memento_kigali_prints.jpg";
-import heroImg from "@assets/generated_images/memento_kigali_hero.jpg";
+import birthday from "@assets/quiet_archive/birthday-candid.jpg";
+import wedding from "@assets/quiet_archive/wedding-keepsake.jpg";
+import gathering from "@assets/quiet_archive/hero-gathering.jpg";
+import booth from "@assets/quiet_archive/booth-experience.jpg";
+import prints from "@assets/quiet_archive/prints-in-hand.jpg";
+import book from "@assets/quiet_archive/memory-book.jpg";
+import graduation from "@assets/quiet_archive/graduation.jpg";
+import corporate from "@assets/quiet_archive/corporate-gathering.jpg";
+import archive from "@assets/quiet_archive/archive-still-life.jpg";
 
+const images = [
+  [birthday, "A birthday, kept"],
+  [prints, "Beyond the camera roll"],
+  [wedding, "For the days that stay"],
+  [gathering, "Perfectly unplanned"],
+  [book, "A place for every memory"],
+  [graduation, "The next chapter"],
+  [booth, "Inside the experience"],
+  [corporate, "Together, off the clock"],
+  [archive, "Something worth keeping"],
+];
 export default function Gallery() {
-  const images = [
-    { src: galleryImg1, aspect: "aspect-[3/4]", label: "Gala Portrait" },
-    { src: heroImg, aspect: "aspect-square", label: "Timeless Event" },
-    { src: studioImg, aspect: "aspect-[4/3]", label: "Studio Session" },
-    { src: galleryImg1, aspect: "aspect-[3/4]", label: "Candid Moment" },
-    { src: stripImg, aspect: "aspect-[3/4]", label: "The Noir Strip" },
-    { src: heroImg, aspect: "aspect-video", label: "Editorial Scene" },
-    { src: stripImg, aspect: "aspect-[2/5]", label: "Archive Strip" }, 
-    { src: galleryImg1, aspect: "aspect-[3/4]", label: "Gala Evening" },
-    { src: studioImg, aspect: "aspect-square", label: "Classic Portrait" },
-  ];
-
   return (
-    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 paper">
-      <section className="px-6 md:px-12 max-w-[1600px] mx-auto w-full mb-20 text-center">
-         <p className="eyebrow text-secondary mb-5">Curated moments</p>
-         <h1 className="font-serif text-5xl md:text-7xl text-primary mb-6">The <em>Archive.</em></h1>
-      </section>
-
-      <section className="px-4 md:px-12 max-w-[1600px] mx-auto w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 items-start">
-          
-          {/* Column 1 */}
-          <div className="flex flex-col gap-6 md:gap-10">
-            {images.filter((_, i) => i % 3 === 0).map((img, i) => (
-              <div key={`col1-${i}`} className={`${img.aspect} w-full bg-muted relative overflow-hidden flex items-center justify-center`}>
-                 <img
-                   src={img.src}
-                   alt={img.label}
-                   className="absolute inset-0 h-full w-full object-cover filter grayscale-[0.3] hover:grayscale-0 transition-all duration-1000"
-                 />
-              </div>
-            ))}
-          </div>
-
-          {/* Column 2 - offset top slightly on desktop */}
-          <div className="flex flex-col gap-6 md:gap-10 md:mt-16">
-            {images.filter((_, i) => i % 3 === 1).map((img, i) => (
-              <div key={`col2-${i}`} className={`${img.aspect} w-full bg-muted relative overflow-hidden flex items-center justify-center`}>
-                 <img
-                   src={img.src}
-                   alt={img.label}
-                   className="absolute inset-0 h-full w-full object-cover filter sepia-[0.2] hover:sepia-0 transition-all duration-1000"
-                 />
-              </div>
-            ))}
-          </div>
-
-          {/* Column 3 */}
-          <div className="flex flex-col gap-6 md:gap-10 md:mt-8">
-            {images.filter((_, i) => i % 3 === 2).map((img, i) => (
-              <div key={`col3-${i}`} className={`${img.aspect} w-full bg-muted relative overflow-hidden flex items-center justify-center`}>
-                 <img
-                   src={img.src}
-                   alt={img.label}
-                   className="absolute inset-0 h-full w-full object-cover filter grayscale hover:grayscale-0 transition-all duration-1000"
-                 />
-              </div>
-            ))}
-          </div>
-
-        </div>
+    <main className="min-h-screen pt-32 pb-24 paper">
+      <header className="px-6 max-w-3xl mx-auto mb-16 text-center">
+        <p className="eyebrow text-olive mb-5">The feeling, imagined</p>
+        <h1 className="font-serif text-5xl md:text-7xl mb-6">
+          The <em>Archive.</em>
+        </h1>
+        <p className="leading-relaxed text-primary/80">
+          A glimpse of the memories we want to help you keep. These AI-created
+          illustrations express Memento’s visual direction; they are not a
+          portfolio of past events.
+        </p>
+      </header>
+      <section
+        aria-label="Illustrative gallery"
+        className="px-6 md:px-12 max-w-7xl mx-auto columns-1 sm:columns-2 lg:columns-3 gap-8"
+      >
+        {images.map(([src, label]) => (
+          <figure key={src} className="break-inside-avoid mb-10">
+            <img
+              src={src}
+              alt={`${label} — AI-created illustration`}
+              loading="lazy"
+              className="w-full h-auto"
+            />
+            <figcaption className="annotation text-2xl mt-3">
+              {label}
+            </figcaption>
+          </figure>
+        ))}
       </section>
     </main>
   );

@@ -13,9 +13,16 @@ export interface BookingConfirmation {
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
-  hourlyRateRwf: number;
-  totalAmountRwf: number;
-  depositPercentage: number;
-  depositAmountRwf: number;
+  /** @nullable */
+  packageName?: string | null;
+  quoteRequired?: boolean;
+  /** @nullable */
+  hourlyRateRwf: number | null;
+  /** @nullable */
+  totalAmountRwf: number | null;
+  /** @nullable */
+  depositPercentage: number | null;
+  /** @nullable */
+  depositAmountRwf: number | null;
   paymentStatus: PaymentStatus;
 }

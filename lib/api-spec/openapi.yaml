@@ -241,6 +241,7 @@ components:
       properties:
         bookingOpeningDate: { type: string, format: date }
         earlyBookingMode: { type: boolean }
+        pricingVersion: { type: string }
     BookingInput:
       type: object
       required:
@@ -248,6 +249,8 @@ components:
       properties:
         customerType:
           $ref: "#/components/schemas/CustomerType"
+        packageId: { type: ["string", "null"] }
+        pricingVersion: { type: ["string", "null"] }
         organizationName: { type: ["string", "null"], maxLength: 160 }
         fullName: { type: string, minLength: 2, maxLength: 120 }
         phone: { type: string, minLength: 7, maxLength: 30 }
@@ -278,10 +281,12 @@ components:
         status:
           $ref: "#/components/schemas/BookingStatus"
         potentialConflict: { type: boolean }
-        hourlyRateRwf: { type: number }
-        totalAmountRwf: { type: number }
-        depositPercentage: { type: number }
-        depositAmountRwf: { type: number }
+        packageName: { type: ["string", "null"] }
+        quoteRequired: { type: boolean }
+        hourlyRateRwf: { type: ["number", "null"] }
+        totalAmountRwf: { type: ["number", "null"] }
+        depositPercentage: { type: ["number", "null"] }
+        depositAmountRwf: { type: ["number", "null"] }
         paymentStatus:
           $ref: "#/components/schemas/PaymentStatus"
     AdminNote:
@@ -302,13 +307,19 @@ components:
             status:
               $ref: "#/components/schemas/BookingStatus"
             potentialConflict: { type: boolean }
-            hourlyRateRwf: { type: number }
-            totalAmountRwf: { type: number }
-            depositPercentage: { type: number }
-            depositAmountRwf: { type: number }
+            packageName: { type: ["string", "null"] }
+            pricingVersion: { type: ["string", "null"] }
+            basePriceRwf: { type: ["number", "null"] }
+            includedHours: { type: ["number", "null"] }
+            quoteRequired: { type: boolean }
+            hourlyRateRwf: { type: ["number", "null"] }
+            totalAmountRwf: { type: ["number", "null"] }
+            depositPercentage: { type: ["number", "null"] }
+            depositAmountRwf: { type: ["number", "null"] }
             paymentStatus:
               $ref: "#/components/schemas/PaymentStatus"
-            paymentMethod: { type: string, enum: [mtn_momo] }
+            paymentMethod: { type: ["string", "null"] }
+            notificationStatus: { type: string, enum: [sent, pending, retrying, not_configured, none] }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
             adminNotes:
@@ -334,6 +345,8 @@ components:
         startTime: { type: ["string", "null"] }
         endTime: { type: ["string", "null"] }
         reason: { type: string, enum: [confirmed, blocked] }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
     BlockedAvailabilityInput:
       type: object
       required: [date, reason]

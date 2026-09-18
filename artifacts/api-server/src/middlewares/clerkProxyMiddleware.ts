@@ -12,7 +12,7 @@ export function getClerkProxyHost(req: { headers: IncomingHttpHeaders }): string
 }
 
 export function clerkProxyMiddleware(): RequestHandler {
-  if (process.env.NODE_ENV !== "production" || !process.env.CLERK_SECRET_KEY) {
+  if (process.env.CLERK_PROXY_ENABLED !== "true" || !process.env.CLERK_SECRET_KEY) {
     return (_req, _res, next) => next();
   }
   return createProxyMiddleware({

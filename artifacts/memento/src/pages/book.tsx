@@ -1,595 +1,837 @@
-import * as React from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Link } from "wouter"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useCreateBooking } from "@workspace/api-client-react"
-import { useToast } from "@/hooks/use-toast"
-import { useScrollReveal } from "@/hooks/use-scroll-reveal"
+import { useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
+import {
+  useCreateBooking,
+  useGetAvailability,
+  useGetSiteSettings,
+  type BookingConfirmation,
+} from "@workspace/api-client-react";
+import {
+  business,
+  estimatePrice,
+  formatRwf,
+  addOnName,
+  normalizePhone,
+  bookingWindow,
+  windowsOverlap,
+  kigaliToday,
+  validateOpening,
+} from "@workspace/business";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-const bookingSchema = z.object({
-  customerType: z.enum(["individual", "organization"]),
-  organizationName: z.string().max(160).optional().nullable(),
-  fullName: z.string().min(2, "Name is required").max(120),
-  phone: z.string().min(7, "Valid phone required").max(30),
-  email: z.string().email("Valid email required").or(z.literal("")).nullable(),
-  preferredContactMethod: z.enum(["whatsapp", "phone", "email"]),
-  eventType: z.string().min(2, "Event type required").max(80),
-  eventDate: z.string().min(1, "Date required"), // simple string for now
-  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format HH:MM"),
-  endTime: z.string().optional().nullable(),
-  durationHours: z.coerce.number().int("Use whole hours").min(2, "Minimum booking is 2 hours").max(24),
-  venue: z.string().min(2, "Venue required").max(160),
-  location: z.string().min(2, "Location required").max(120),
-  guestCount: z.coerce.number().min(1, "Guest count required"),
-  printFormat: z.string().min(2, "Print format required"),
-  backdropPreference: z.string().min(2, "Backdrop preference required"),
-  addOns: z.array(z.string()).optional(),
-  brandedRequirements: z.string().max(2000).optional().nullable(),
-  notes: z.string().max(2000).optional().nullable(),
-  consent: z.boolean().refine(val => val === true, "Consent required"),
-  website: z.string().optional().nullable(), // honeypot
-  earlyRequest: z.boolean().optional(),
-}).superRefine((data, ctx) => {
-  if (data.customerType === "organization" && !data.organizationName?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["organizationName"],
-      message: "Organization name is required",
-    })
-  }
-})
+const initial = {
+  customerType: "individual" as "individual" | "organization",
+  organizationName: "",
+  fullName: "",
+  phone: "",
+  email: "",
+  preferredContactMethod: "email" as "email" | "phone" | "whatsapp",
+  packageId: "birthday",
+  eventType: "Birthday",
+  eventDate: "",
+  startTime: "18:00",
+  durationHours: 2,
+  venue: "",
+  location: "",
+  guestCount: 50,
+  printFormat: "discuss",
+  backdropPreference: "from-selection",
+  addOns: [] as string[],
+  brandedRequirements: "",
+  notes: "",
+  consent: false,
+  website: "",
+};
+type Values = typeof initial;
+const labels = [
+  "Your details",
+  "Your gathering",
+  "Your experience",
+  "A few more details",
+  "Review & request",
+];
+const draftKey = "memento_booking_v2";
 
-type BookingFormValues = z.infer<typeof bookingSchema>
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-medium">{label}</span>
+      {children}
+    </label>
+  );
+}
+const selectClass =
+  "w-full h-12 border-b border-primary/30 bg-transparent text-base outline-offset-4";
 
 export default function Book() {
-  useScrollReveal()
-  const [step, setStep] = React.useState(1)
-  const { toast } = useToast()
-  const createBooking = useCreateBooking()
-  const [confirmation, setConfirmation] = React.useState<{
-    reference: string
-    totalAmountRwf: number
-    depositAmountRwf: number
-  } | null>(null)
-
-  // Retrieve draft from localStorage if available
-  const savedData = React.useMemo(() => {
+  const [values, setValues] = useState<Values>(() => {
+    const requested = new URLSearchParams(window.location.search).get(
+      "package",
+    );
+    const pkg = business.packages.find((p) => p.id === requested);
+    const defaults = pkg
+      ? {
+          ...initial,
+          packageId: pkg.id,
+          eventType: pkg.id === "other" ? "" : pkg.name,
+        }
+      : initial;
     try {
-      const stored = localStorage.getItem("memento_booking_draft")
-      return stored ? JSON.parse(stored) : null
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) || "null");
+      return !pkg &&
+        saved &&
+        saved.expires > Date.now() &&
+        Array.isArray(saved.values?.addOns)
+        ? { ...initial, ...saved.values, consent: false }
+        : defaults;
     } catch {
-      return null
+      return defaults;
     }
-  }, [])
-
-  const form = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      customerType: "individual",
-      organizationName: "",
-      fullName: "",
-      phone: "",
-      email: "",
-      preferredContactMethod: "whatsapp",
-      eventType: "",
-      eventDate: "",
-      startTime: "18:00",
-      durationHours: 2,
-      venue: "",
-      location: "",
-      guestCount: 100,
-      printFormat: "4x6",
-      backdropPreference: "signature-warm",
-      addOns: [],
-      notes: "",
-      consent: false,
-      ...savedData,
-    },
-    mode: "onChange",
-  })
-
-  // Save to localStorage on change
-  React.useEffect(() => {
-    const subscription = form.watch((value) => {
-      localStorage.setItem("memento_booking_draft", JSON.stringify(value))
-    })
-    return () => subscription.unsubscribe()
-  }, [form])
-
-  const nextStep = async () => {
-    let fieldsToValidate: any[] = []
-    if (step === 1) fieldsToValidate = ["customerType", "organizationName", "fullName", "phone", "email", "preferredContactMethod"]
-    if (step === 2) fieldsToValidate = ["eventType", "eventDate", "startTime", "durationHours", "venue", "location", "guestCount"]
-    if (step === 3) fieldsToValidate = ["printFormat", "backdropPreference"]
-    
-    const isValid = await form.trigger(fieldsToValidate as any, { shouldFocus: true })
-    if (isValid) setStep(s => Math.min(s + 1, 5))
-    else toast({
-      title: "Please check this step",
-      description: "Complete the highlighted required fields before continuing.",
-      variant: "destructive",
-    })
-  }
-
-  const prevStep = () => setStep(s => Math.max(s - 1, 1))
-
-  const onSubmit = (data: BookingFormValues) => {
-    if (data.website) return // Honeypot filled
-    
-    createBooking.mutate({ data }, {
-      onSuccess: (result) => {
-        setConfirmation({
-          reference: result.reference,
-          totalAmountRwf: result.totalAmountRwf,
-          depositAmountRwf: result.depositAmountRwf,
-        })
-        localStorage.removeItem("memento_booking_draft")
-        window.scrollTo(0, 0)
+  });
+  const [step, setStep] = useState(0);
+  const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(
+    null,
+  );
+  const heading = useRef<HTMLHeadingElement>(null);
+  const create = useCreateBooking();
+  const settings = useGetSiteSettings();
+  const nextDate =
+    values.eventDate &&
+    Number.isFinite(Date.parse(`${values.eventDate}T00:00:00Z`))
+      ? new Date(Date.parse(`${values.eventDate}T00:00:00Z`) + 86400000)
+          .toISOString()
+          .slice(0, 10)
+      : "";
+  const availability = useGetAvailability(
+    { from: values.eventDate, to: nextDate },
+    {
+      query: {
+        queryKey: ["availability", values.eventDate],
+        enabled: Boolean(values.eventDate),
+        staleTime: 0,
+        refetchOnWindowFocus: true,
       },
-      onError: (error: unknown) => {
-        const apiError = error as { status?: number; data?: { error?: string } }
-        toast({
-          title: apiError.status === 409 ? "Time unavailable" : "Submission failed",
-          description: apiError.data?.error ?? "There was an error submitting your request. Please try again or contact us directly.",
-          variant: "destructive"
-        })
-      }
-    })
+    },
+  );
+  let estimate: ReturnType<typeof estimatePrice> | null = null;
+  try {
+    estimate = estimatePrice(
+      values.packageId,
+      Number(values.durationHours),
+      values.addOns,
+    );
+  } catch {
+    /* Validation shown before advancing. */
   }
+  let unavailable = false;
+  try {
+    const range = bookingWindow(
+      values.eventDate,
+      values.startTime,
+      Number(values.durationHours),
+    );
+    unavailable = Boolean(
+      availability.data?.some(
+        (w) =>
+          w.startsAt &&
+          w.endsAt &&
+          windowsOverlap(range, {
+            startAt: new Date(w.startsAt),
+            endAt: new Date(w.endsAt),
+          }),
+      ),
+    );
+  } catch {
+    /* Date not chosen yet. */
+  }
+  const update = <K extends keyof Values>(key: K, value: Values[K]) => {
+    setValues((old) => ({ ...old, [key]: value }));
+    setError("");
+  };
+  useEffect(() => {
+    if (!confirmation) {
+      try {
+        sessionStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            expires: Date.now() + 86400000,
+            values: { ...values, consent: false },
+          }),
+        );
+      } catch {
+        /* Draft storage is optional. */
+      }
+    }
+  }, [values, confirmation]);
+  useEffect(() => {
+    heading.current?.focus();
+    window.scrollTo({ top: 0 });
+  }, [step, confirmation]);
 
-  if (confirmation) {
+  const validate = (at: number) => {
+    if (at === 0) {
+      if (values.fullName.trim().length < 2)
+        return "Please enter your full name.";
+      if (
+        values.customerType === "organization" &&
+        !values.organizationName.trim()
+      )
+        return "Please enter the organization name.";
+      try {
+        normalizePhone(values.phone);
+      } catch (e) {
+        return (e as Error).message;
+      }
+      if (
+        (values.email || values.preferredContactMethod === "email") &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())
+      )
+        return "Please enter a valid email address, or choose phone as your contact method.";
+    }
+    if (at === 1) {
+      if (!settings.data)
+        return "We could not load booking information. Please retry or contact us by email.";
+      if (settings.data.pricingVersion !== business.pricingVersion)
+        return "Our package details have changed. Refresh this page before continuing.";
+      if (
+        values.eventType.trim().length < 2 ||
+        values.venue.trim().length < 2 ||
+        values.location.trim().length < 2
+      )
+        return "Please complete the event type, venue and location.";
+      if (
+        !Number.isInteger(Number(values.guestCount)) ||
+        values.guestCount < 1 ||
+        values.guestCount > 10000
+      )
+        return "Enter a whole guest count between 1 and 10,000.";
+      try {
+        estimatePrice(
+          values.packageId,
+          Number(values.durationHours),
+          values.addOns,
+        );
+        validateOpening(
+          values.eventDate,
+          values.startTime,
+          Number(values.durationHours),
+        );
+      } catch (e) {
+        return (e as Error).message;
+      }
+      if (availability.isFetching)
+        return "Please wait while we check the selected time.";
+      if (availability.isError)
+        return "We could not check availability. Please retry the check below.";
+      if (unavailable)
+        return "That time is unavailable. Please choose another date or time.";
+    }
+    if (at === 4 && !values.consent)
+      return "Please acknowledge the booking request terms.";
+    return "";
+  };
+  const next = () => {
+    const message = validate(step);
+    if (message) setError(message);
+    else {
+      setError("");
+      setStep((s) => s + 1);
+    }
+  };
+  const submit = () => {
+    for (let i = 0; i <= 4; i++) {
+      const message = validate(i);
+      if (message) {
+        setStep(i);
+        setError(message);
+        return;
+      }
+    }
+    if (values.website) return;
+    create.mutate(
+      {
+        data: {
+          ...values,
+          pricingVersion: business.pricingVersion,
+          phone: normalizePhone(values.phone),
+          email: values.email.trim() || null,
+          durationHours: Number(values.durationHours),
+          guestCount: Number(values.guestCount),
+        },
+      },
+      {
+        onSuccess: (result) => {
+          setConfirmation(result);
+          try {
+            sessionStorage.removeItem(draftKey);
+          } catch {
+            /* Storage can be disabled. */
+          }
+        },
+        onError: (e: unknown) => {
+          const err = e as { status?: number; data?: { error?: string } };
+          setError(
+            err.data?.error ||
+              "Your request could not be submitted. Please try again or email us.",
+          );
+          if (err.status === 409) {
+            setStep(1);
+            void availability.refetch();
+          }
+        },
+      },
+    );
+  };
+  const emailLink = `mailto:${business.contact.email}`;
+  if (confirmation)
     return (
-       <main className="min-h-screen flex items-center justify-center paper px-6 pt-24">
-        <div className="max-w-2xl text-center fade-up">
-           <p className="eyebrow text-olive mb-6">Request received</p>
-           <h1 className="font-serif text-5xl text-primary mb-8">Thank <em>you.</em></h1>
-          <p className="text-primary/70 font-light leading-relaxed mb-12">
-            We have received your booking request. Your reference is <strong>{confirmation.reference}</strong>. We will review availability and contact you personally. Submission does not guarantee confirmation.
+      <main className="paper min-h-screen pt-40 pb-24 px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="eyebrow text-olive mb-6">Request received</p>
+          <h1 ref={heading} tabIndex={-1} className="font-serif text-6xl mb-8">
+            Thank <em>you.</em>
+          </h1>
+          <p className="leading-relaxed mb-6">
+            Your reference is <strong>{confirmation.reference}</strong>. We will
+            review availability and contact you personally. Your booking is not
+            confirmed yet.
           </p>
-          <div className="border border-primary/15 bg-card p-6 mb-10 text-left">
-            <p className="eyebrow text-primary/50 mb-3">Estimated booking</p>
-            <p className="text-primary">Total: RWF {confirmation.totalAmountRwf.toLocaleString()}</p>
-            <p className="text-primary">30% deposit: RWF {confirmation.depositAmountRwf.toLocaleString()}</p>
-            <p className="text-sm text-primary/60 mt-3">No payment is due yet. After Memento approves availability, we will send MTN Mobile Money payment instructions.</p>
+          <div className="border border-primary/20 bg-card p-6 mb-8 text-left">
+            <p>{confirmation.packageName}</p>
+            <p className="font-serif text-3xl mt-2">
+              {formatRwf(confirmation.totalAmountRwf)}
+            </p>
+            <p className="text-sm mt-3">
+              {confirmation.quoteRequired
+                ? "Add-ons and any tailored requirements will be priced in your final quote. "
+                : ""}
+              No payment is due now. Payment terms will be confirmed with your
+              quote.
+            </p>
           </div>
-          <a href="https://wa.me/250788628735" target="_blank" rel="noreferrer" className="inline-block mb-5 font-sans uppercase tracking-widest text-xs border-b border-primary">Follow up on WhatsApp</a>
-          <Link href="/">
-            <Button variant="outline" className="rounded-none border-primary uppercase tracking-widest text-xs h-12 px-8">Return Home</Button>
+          <p className="text-sm mb-8">
+            {values.email
+              ? "A receipt will be emailed to you. If it does not arrive, check spam or contact us with your reference."
+              : "Keep your reference for follow-up. We will contact you using your phone number."}
+          </p>
+          <a
+            className="underline underline-offset-4"
+            href={`${emailLink}?subject=${encodeURIComponent(`Booking ${confirmation.reference}`)}`}
+          >
+            Email Memento
+          </a>
+          <Link href="/" className="block mt-8 underline">
+            Return home
           </Link>
         </div>
       </main>
-    )
-  }
+    );
 
   return (
-     <main className="min-h-screen flex flex-col pt-32 pb-24 paper">
-      <div className="max-w-3xl mx-auto w-full px-6">
-        
-        {/* Progress indicator */}
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-2">
-             <span className="eyebrow text-primary/50">Step {step} of 5</span>
-            <span className="font-serif text-primary/80">
-              {step === 1 && "Personal Details"}
-              {step === 2 && "Event Details"}
-              {step === 3 && "The Experience"}
-              {step === 4 && "Additional Notes"}
-              {step === 5 && "Review"}
-            </span>
-          </div>
-           <div className="h-px w-full bg-primary/10 flex">
-            <div 
-              className="h-full bg-primary transition-all duration-500 ease-out"
-              style={{ width: `${(step / 5) * 100}%` }}
+    <main className="paper min-h-screen pt-36 pb-24 px-6">
+      <div className="max-w-3xl mx-auto">
+        <p className="eyebrow text-olive mb-4">Make a request / Kigali time</p>
+        <h1 className="font-serif text-5xl md:text-6xl mb-5">
+          A date worth <em>keeping.</em>
+        </h1>
+        <p className="text-primary/75 mb-8">
+          Requests are open for events from {business.booking.earliestEventDate}
+          . For an earlier date,{" "}
+          <a href={emailLink} className="underline">
+            contact us directly
+          </a>
+          . We confirm each booking personally.
+        </p>
+        <div className="flex justify-between text-sm mb-3">
+          <span>Step {step + 1} of 5</span>
+          <span>{labels[step]}</span>
+        </div>
+        <div className="h-px bg-primary/20 mb-10">
+          <div
+            className="h-px bg-primary"
+            style={{ width: `${(step + 1) * 20}%` }}
+          />
+        </div>
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className="font-serif text-4xl mb-8 outline-none"
+        >
+          {labels[step]}
+        </h2>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            step === 4 ? submit() : next();
+          }}
+          className="space-y-7"
+        >
+          {error && (
+            <div
+              role="alert"
+              className="border-l-2 border-ink p-4 bg-rose-tint"
+            >
+              {error}
+            </div>
+          )}
+          {step === 0 && (
+            <>
+              <Field label="Booking for">
+                <select
+                  className={selectClass}
+                  value={values.customerType}
+                  onChange={(e) =>
+                    update(
+                      "customerType",
+                      e.target.value as Values["customerType"],
+                    )
+                  }
+                >
+                  <option value="individual">An individual</option>
+                  <option value="organization">An organization</option>
+                </select>
+              </Field>
+              {values.customerType === "organization" && (
+                <Field label="Organization name">
+                  <Input
+                    maxLength={160}
+                    value={values.organizationName}
+                    onChange={(e) => update("organizationName", e.target.value)}
+                  />
+                </Field>
+              )}
+              <Field label="Your full name">
+                <Input
+                  autoComplete="name"
+                  maxLength={120}
+                  value={values.fullName}
+                  onChange={(e) => update("fullName", e.target.value)}
+                />
+              </Field>
+              <Field label="Phone number">
+                <Input
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="0788 123 456 or +250788123456"
+                  maxLength={30}
+                  value={values.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                />
+              </Field>
+              <Field label="Email address (for your request receipt)">
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  maxLength={254}
+                  value={values.email}
+                  onChange={(e) => update("email", e.target.value)}
+                />
+              </Field>
+              <Field label="Preferred contact method">
+                <select
+                  className={selectClass}
+                  value={values.preferredContactMethod}
+                  onChange={(e) =>
+                    update(
+                      "preferredContactMethod",
+                      e.target.value as Values["preferredContactMethod"],
+                    )
+                  }
+                >
+                  <option value="email">Email</option>
+                  <option value="phone">Phone call</option>
+                  {business.contact.whatsappNumber && (
+                    <option value="whatsapp">WhatsApp</option>
+                  )}
+                </select>
+              </Field>
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <Field label="Package">
+                <select
+                  className={selectClass}
+                  value={values.packageId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setValues((v) => ({
+                      ...v,
+                      packageId: id,
+                      eventType:
+                        id === "other"
+                          ? ""
+                          : business.packages.find((p) => p.id === id)!.name,
+                    }));
+                  }}
+                >
+                  {business.packages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — {formatRwf(p.basePriceRwf)}
+                      {p.basePriceRwf != null
+                        ? ` / ${p.includedHours} hours`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Event type">
+                <Input
+                  maxLength={80}
+                  placeholder="Birthday, wedding, graduation, corporate event…"
+                  value={values.eventType}
+                  onChange={(e) => update("eventType", e.target.value)}
+                />
+              </Field>
+              <div className="grid sm:grid-cols-2 gap-6">
+                <Field label="Event date">
+                  <Input
+                    type="date"
+                    min={[business.booking.earliestEventDate, kigaliToday()]
+                      .sort()
+                      .at(-1)}
+                    value={values.eventDate}
+                    onChange={(e) => update("eventDate", e.target.value)}
+                  />
+                </Field>
+                <Field label="Start time (Kigali / CAT)">
+                  <Input
+                    type="time"
+                    value={values.startTime}
+                    onChange={(e) => update("startTime", e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="Total hours">
+                <Input
+                  type="number"
+                  min={2}
+                  max={business.booking.maxHours}
+                  step={1}
+                  value={values.durationHours}
+                  onChange={(e) =>
+                    update("durationHours", Number(e.target.value))
+                  }
+                />
+              </Field>
+              <div
+                aria-live="polite"
+                className="border border-primary/20 p-5 bg-card"
+              >
+                <p className="eyebrow mb-3">Package estimate</p>
+                <p className="font-serif text-3xl">
+                  {formatRwf(estimate?.totalAmountRwf)}
+                </p>
+                {estimate?.basePriceRwf != null && (
+                  <p className="text-sm mt-2">
+                    {formatRwf(estimate.basePriceRwf)} includes{" "}
+                    {estimate.includedHours} hours;{" "}
+                    {formatRwf(estimate.hourlyRateRwf)} per extra hour.
+                  </p>
+                )}
+                <p className="text-sm mt-3">
+                  Unlimited prints and digital copies included. Add-ons are
+                  quoted separately. Payment terms follow with your quote.
+                </p>
+              </div>
+              {values.eventDate && (
+                <div
+                  aria-live="polite"
+                  className="border-l-2 border-olive pl-4 text-sm"
+                >
+                  {availability.isFetching ? (
+                    "Checking availability…"
+                  ) : availability.isError ? (
+                    <>
+                      Availability could not be loaded.{" "}
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => void availability.refetch()}
+                      >
+                        Retry check
+                      </button>
+                    </>
+                  ) : unavailable ? (
+                    "This time overlaps an unavailable period. Choose another time or date."
+                  ) : (
+                    "No confirmed conflict found for this time. Final availability is confirmed personally."
+                  )}
+                  {Boolean(availability.data?.length) && (
+                    <ul className="mt-3 space-y-1">
+                      {availability.data!.map((w, i) => (
+                        <li key={i}>
+                          Unavailable:{" "}
+                          {w.startsAt
+                            ? new Date(w.startsAt).toLocaleString("en-GB", {
+                                timeZone: "Africa/Kigali",
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : w.date}{" "}
+                          –{" "}
+                          {w.endsAt
+                            ? new Date(w.endsAt).toLocaleString("en-GB", {
+                                timeZone: "Africa/Kigali",
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "all day"}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {settings.isError && (
+                <p role="alert">
+                  Booking information unavailable.{" "}
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => void settings.refetch()}
+                  >
+                    Retry
+                  </button>
+                </p>
+              )}
+              <Field label="Venue name">
+                <Input
+                  maxLength={160}
+                  value={values.venue}
+                  onChange={(e) => update("venue", e.target.value)}
+                />
+              </Field>
+              <Field label="Neighborhood / location">
+                <Input
+                  maxLength={120}
+                  value={values.location}
+                  onChange={(e) => update("location", e.target.value)}
+                />
+              </Field>
+              <Field label="Estimated guest count">
+                <Input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  step={1}
+                  value={values.guestCount}
+                  onChange={(e) => update("guestCount", Number(e.target.value))}
+                />
+              </Field>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <Field label="Print format">
+                <select
+                  className={selectClass}
+                  value={values.printFormat}
+                  onChange={(e) => update("printFormat", e.target.value)}
+                >
+                  <option value="discuss">Help me choose</option>
+                  <option value="4x6">4×6 inch print</option>
+                  <option value="2x6-strip">2×6 inch photo strip</option>
+                </select>
+              </Field>
+              <Field label="Backdrop preference">
+                <select
+                  className={selectClass}
+                  value={values.backdropPreference}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setValues((v) => ({
+                      ...v,
+                      backdropPreference: value,
+                      addOns:
+                        value === "custom"
+                          ? Array.from(
+                              new Set([...v.addOns, "custom-backdrop"]),
+                            )
+                          : v.addOns,
+                    }));
+                  }}
+                >
+                  <option value="from-selection">
+                    Choose from the Memento selection
+                  </option>
+                  <option value="custom">
+                    Custom backdrop (quoted add-on)
+                  </option>
+                  <option value="discuss">Discuss with Memento</option>
+                </select>
+              </Field>
+              <fieldset className="space-y-4">
+                <legend className="font-serif text-3xl mb-4">
+                  Optional additions
+                </legend>
+                <p className="text-sm text-primary/75">
+                  Select anything you would like us to include in your quote.
+                  These prices are not included in the package estimate.
+                </p>
+                {business.addOns.map((a) => (
+                  <label
+                    key={a.id}
+                    className="flex gap-4 border border-primary/20 p-5 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 mt-1 accent-ink"
+                      checked={values.addOns.includes(a.id)}
+                      onChange={(e) => {
+                        const selected = e.target.checked;
+                        setValues((v) => ({
+                          ...v,
+                          addOns: selected
+                            ? [...v.addOns, a.id]
+                            : v.addOns.filter((id) => id !== a.id),
+                          backdropPreference:
+                            a.id === "custom-backdrop" &&
+                            !selected &&
+                            v.backdropPreference === "custom"
+                              ? "from-selection"
+                              : v.backdropPreference,
+                        }));
+                      }}
+                    />
+                    <span>
+                      <span className="font-medium">{a.name}</span>
+                      <span className="block text-sm text-primary/75 mt-1">
+                        {a.description}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            </>
+          )}
+          {step === 3 && (
+            <>
+              <Field label="Branding or customization (optional)">
+                <Textarea
+                  maxLength={2000}
+                  value={values.brandedRequirements}
+                  onChange={(e) =>
+                    update("brandedRequirements", e.target.value)
+                  }
+                  placeholder="Names, dates, brand details or print-layout preferences…"
+                />
+              </Field>
+              <Field label="Anything else (optional)">
+                <Textarea
+                  maxLength={2000}
+                  value={values.notes}
+                  onChange={(e) => update("notes", e.target.value)}
+                  placeholder="Venue access, schedule or special requests…"
+                />
+              </Field>
+            </>
+          )}
+          {step === 4 && (
+            <>
+              <dl className="bg-card border border-primary/20 p-6 grid grid-cols-[minmax(100px,1fr)_2fr] gap-4 text-sm">
+                {Object.entries({
+                  Name: values.fullName,
+                  Email: values.email || "Not supplied",
+                  Phone: values.phone,
+                  Contact: values.preferredContactMethod,
+                  Organization: values.organizationName || "Individual",
+                  Package: estimate?.packageName,
+                  Event: values.eventType,
+                  When: `${values.eventDate}, ${values.startTime} CAT, ${values.durationHours} hours`,
+                  Where: `${values.venue}, ${values.location}`,
+                  Guests: values.guestCount,
+                  Prints:
+                    values.printFormat === "discuss"
+                      ? "Help me choose"
+                      : values.printFormat,
+                  Backdrop: values.backdropPreference.replaceAll("-", " "),
+                  "Add-ons": values.addOns.map(addOnName).join(", ") || "None",
+                  "Package estimate": formatRwf(estimate?.totalAmountRwf),
+                  Notes:
+                    [values.brandedRequirements, values.notes]
+                      .filter(Boolean)
+                      .join(" / ") || "None",
+                }).map(([label, value]) => (
+                  <div className="contents" key={label}>
+                    <dt className="text-primary/70">{label}</dt>
+                    <dd className="break-words min-w-0">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="text-sm">
+                Add-ons are quoted separately. No payment is due when you
+                submit. We will confirm availability and payment terms
+                personally.
+              </p>
+              <label className="flex items-start gap-3 border border-primary/20 p-4">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 shrink-0 accent-ink"
+                  checked={values.consent}
+                  onChange={(e) => update("consent", e.target.checked)}
+                />
+                <span className="text-sm">
+                  I understand this is a booking request and have read the{" "}
+                  <Link href="/privacy" className="underline">
+                    privacy notice
+                  </Link>
+                  .
+                </span>
+              </label>
+            </>
+          )}
+          <div className="hidden" aria-hidden="true">
+            <input
+              tabIndex={-1}
+              autoComplete="off"
+              value={values.website}
+              onChange={(e) => update("website", e.target.value)}
+              name="website"
             />
           </div>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            
-            {/* Step 1: Personal */}
-            <div className={step === 1 ? "block" : "hidden"}>
-              <h2 className="font-serif text-4xl text-primary mb-10">Who are we speaking with?</h2>
-              <div className="space-y-8">
-                <FormField
-                  control={form.control}
-                  name="customerType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Booking For</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="individual">An Individual</SelectItem>
-                          <SelectItem value="organization">An Organization</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {form.watch("customerType") === "organization" && (
-                  <FormField
-                    control={form.control}
-                    name="organizationName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Organization Name</FormLabel>
-                        <FormControl><Input placeholder="Organization name" {...field} value={field.value || ""} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Person’s Full Name</FormLabel>
-                      <FormControl><Input placeholder="Jane Doe" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl><Input placeholder="+250..." {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl><Input type="email" placeholder="jane@example.com" {...field} value={field.value || ""} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="preferredContactMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferred Contact Method</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                          <SelectItem value="phone">Phone Call</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Step 2: Event Details */}
-            <div className={step === 2 ? "block" : "hidden"}>
-              <h2 className="font-serif text-4xl text-primary mb-10">Tell us about the gathering.</h2>
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <FormField
-                    control={form.control}
-                    name="eventType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Event Type</FormLabel>
-                        <FormControl><Input placeholder="e.g. Wedding, Gala, Birthday" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="guestCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estimated Guest Count</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="durationHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hours Required</FormLabel>
-                        <FormControl><Input type="number" min={2} max={24} step={1} {...field} /></FormControl>
-                        <p className="text-xs text-primary/55 mt-2">Minimum 2 hours · RWF 150,000 per hour</p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="bg-card border border-primary/10 p-5">
-                  <p className="eyebrow text-primary/50 mb-2">Price estimate</p>
-                  <p className="font-serif text-2xl text-primary">
-                    RWF {((Number(form.watch("durationHours")) || 0) * 150000).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-primary/60 mt-1">
-                    30% deposit after approval: RWF {Math.round((Number(form.watch("durationHours")) || 0) * 150000 * 0.3).toLocaleString()}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <FormField
-                    control={form.control}
-                    name="eventDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date (YYYY-MM-DD)</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expected Start Time (HH:MM)</FormLabel>
-                        <FormControl><Input type="time" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <FormField
-                    control={form.control}
-                    name="venue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Venue Name</FormLabel>
-                        <FormControl><Input placeholder="e.g. Kigali Marriott" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Neighborhood / Area</FormLabel>
-                        <FormControl><Input placeholder="e.g. Kiyovu" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Experience */}
-            <div className={step === 3 ? "block" : "hidden"}>
-              <h2 className="font-serif text-4xl text-primary mb-10">Curate your setup.</h2>
-              <div className="space-y-12">
-                <FormField
-                  control={form.control}
-                  name="printFormat"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>Print Format</FormLabel>
-                      <FormControl>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <button
-                            type="button"
-                            className={`border p-6 cursor-pointer transition-colors ${field.value === '4x6' ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
-                            onClick={() => field.onChange('4x6')}
-                            aria-pressed={field.value === '4x6'}
-                          >
-                            <p className="font-serif text-xl text-primary mb-2">Classic 4x6</p>
-                            <p className="text-sm font-light text-primary/70">The Studio Portrait style. Large, clear, editorial.</p>
-                          </button>
-                          <button
-                            type="button"
-                            className={`border p-6 cursor-pointer transition-colors ${field.value === '2x6-strip' ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
-                            onClick={() => field.onChange('2x6-strip')}
-                            aria-pressed={field.value === '2x6-strip'}
-                          >
-                            <p className="font-serif text-xl text-primary mb-2">2x6 Strip</p>
-                            <p className="text-sm font-light text-primary/70">The Noir style. A 3-frame sequence on a tactile strip.</p>
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="backdropPreference"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>Backdrop Style</FormLabel>
-                      <FormControl>
-                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {[
-                            { val: 'signature-warm', label: 'Signature Warm', desc: 'A rich, neutral canvas.' },
-                            { val: 'pure-white', label: 'Pure White', desc: 'High contrast, clean.' },
-                            { val: 'custom', label: 'Custom / Bespoke', desc: 'Built for your event.' }
-                          ].map((opt) => (
-                            <button
-                              type="button"
-                              key={opt.val}
-                              className={`border p-5 cursor-pointer transition-colors ${field.value === opt.val ? 'border-primary bg-card' : 'border-primary/20 hover:border-primary/50'}`}
-                              onClick={() => field.onChange(opt.val)}
-                              aria-pressed={field.value === opt.val}
-                            >
-                              <p className="font-serif text-lg text-primary mb-1">{opt.label}</p>
-                              <p className="text-xs font-light text-primary/70">{opt.desc}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Step 4: Notes */}
-            <div className={step === 4 ? "block" : "hidden"}>
-              <h2 className="font-serif text-4xl text-primary mb-10">Any additional details?</h2>
-              <div className="space-y-8">
-                <FormField
-                  control={form.control}
-                  name="brandedRequirements"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Branding / Customization (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Logos, specific text, or overlay designs you'd like on the prints..." 
-                          {...field} 
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>General Notes (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Anything else we should know about the event flow, venue restrictions, or special requests..." 
-                          {...field} 
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {/* Honeypot */}
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem className="hidden">
-                      <FormControl><Input {...field} value={field.value || ""} /></FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Step 5: Review */}
-            <div className={step === 5 ? "block" : "hidden"}>
-              <h2 className="font-serif text-4xl text-primary mb-10">Review & Submit</h2>
-              
-              <div className="bg-card border border-primary/10 p-8 mb-8 space-y-6 print-lift">
-                <div className="grid grid-cols-2 gap-y-4 text-sm">
-                  <div className="text-primary/60">Name</div>
-                  <div className="text-primary">{form.getValues("fullName")}</div>
-
-                  <div className="text-primary/60">Booking for</div>
-                  <div className="text-primary">
-                    {form.getValues("customerType") === "organization"
-                      ? form.getValues("organizationName")
-                      : "Individual"}
-                  </div>
-                  
-                  <div className="text-primary/60">Event</div>
-                  <div className="text-primary">{form.getValues("eventType")}</div>
-                  
-                  <div className="text-primary/60">Date & Time</div>
-                  <div className="text-primary">{form.getValues("eventDate")} at {form.getValues("startTime")} for {form.getValues("durationHours")} hours</div>
-                  
-                  <div className="text-primary/60">Venue</div>
-                  <div className="text-primary">{form.getValues("venue")}, {form.getValues("location")}</div>
-                  
-                  <div className="text-primary/60">Setup</div>
-                  <div className="text-primary">{form.getValues("printFormat")} with {form.getValues("backdropPreference")}</div>
-
-                  <div className="text-primary/60">Estimated total</div>
-                  <div className="text-primary">RWF {(Number(form.getValues("durationHours")) * 150000).toLocaleString()}</div>
-
-                  <div className="text-primary/60">Deposit after approval</div>
-                  <div className="text-primary">30% · RWF {Math.round(Number(form.getValues("durationHours")) * 150000 * 0.3).toLocaleString()}</div>
-                </div>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="consent"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border border-primary/10">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-xs normal-case tracking-normal">
-                        I understand that this is an availability request, not a confirmed booking. If Memento approves the request, I will receive instructions to pay the 30% deposit through MTN Mobile Money.
-                      </FormLabel>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Navigation */}
-            <div className="flex justify-between items-center pt-8 border-t border-primary/10 mt-12">
-              {step > 1 ? (
-                <Button type="button" variant="ghost" onClick={prevStep} className="uppercase tracking-widest text-xs px-0 hover:bg-transparent hover:text-primary/60 text-primary/80">
-                  ← Back
-                </Button>
-              ) : <div></div>}
-              
-              {step < 5 ? (
-                <Button type="button" onClick={nextStep} className="rounded-none bg-primary text-primary-foreground uppercase tracking-widest text-xs h-12 px-8">
-                  Continue →
-                </Button>
-              ) : (
-                <Button 
-                  type="submit" 
-                  disabled={createBooking.isPending || !form.watch("consent")} 
-                  className="rounded-none bg-primary text-primary-foreground uppercase tracking-widest text-xs h-12 px-10"
-                >
-                  {createBooking.isPending ? "Submitting..." : "Submit Request"}
-                </Button>
-              )}
-            </div>
-
-          </form>
-        </Form>
-
+          <div className="flex justify-between border-t border-primary/20 pt-6">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={step === 0 || create.isPending}
+              onClick={() => {
+                setError("");
+                setStep((s) => s - 1);
+              }}
+            >
+              Back
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending
+                ? "Sending…"
+                : step === 4
+                  ? "Submit request"
+                  : "Continue"}
+            </Button>
+          </div>
+          <p className="text-sm text-primary/70">
+            Prefer to speak to us?{" "}
+            <a href={emailLink} className="underline">
+              {business.contact.email}
+            </a>
+          </p>
+        </form>
       </div>
     </main>
-  )
+  );
 }

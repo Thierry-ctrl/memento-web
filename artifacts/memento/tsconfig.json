@@ -15,6 +15,7 @@
     }
   },
   "references": [
+    { "path": "../../lib/business" },
     {
       "path": "../../lib/api-client-react"
     }

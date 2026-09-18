@@ -48,14 +48,22 @@ export const bookingRequestsTable = pgTable("booking_requests", {
   consent: boolean("consent").notNull(),
   earlyRequest: boolean("early_request").notNull().default(false),
   potentialConflict: boolean("potential_conflict").notNull().default(false),
-  hourlyRateRwf: integer("hourly_rate_rwf").notNull().default(150000),
-  totalAmountRwf: integer("total_amount_rwf").notNull().default(0),
-  depositPercentage: integer("deposit_percentage").notNull().default(30),
-  depositAmountRwf: integer("deposit_amount_rwf").notNull().default(0),
+  hourlyRateRwf: integer("hourly_rate_rwf"),
+  totalAmountRwf: integer("total_amount_rwf"),
+  depositPercentage: integer("deposit_percentage"),
+  depositAmountRwf: integer("deposit_amount_rwf"),
   paymentStatus: paymentStatusEnum("payment_status").notNull().default("not_due"),
-  paymentMethod: text("payment_method").notNull().default("mtn_momo"),
+  paymentMethod: text("payment_method"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  packageId: text("package_id"),
+  packageName: text("package_name"),
+  pricingVersion: text("pricing_version"),
+  includedHours: integer("included_hours"),
+  basePriceRwf: integer("base_price_rwf"),
+  quoteRequired: boolean("quote_required").notNull().default(false),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
 });
 
 export const adminNotesTable = pgTable("admin_notes", {
@@ -78,6 +86,19 @@ export const siteSettingsTable = pgTable("site_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const notificationOutboxTable = pgTable("notification_outbox", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").notNull().references(() => bookingRequestsTable.id, { onDelete: "cascade" }),
+  recipient: text("recipient").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type BookingRequest = typeof bookingRequestsTable.$inferSelect;

@@ -2,10 +2,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
 // We use relative imports for assets generated
-import heroImg from "@assets/generated_images/memento_kigali_hero.jpg";
-import studioImg from "@assets/generated_images/memento_kigali_portrait.jpg";
-import galleryImg1 from "@assets/generated_images/memento_kigali_candid.jpg";
-import stripImg from "@assets/generated_images/memento_kigali_prints.jpg";
+import heroImg from "@assets/quiet_archive/hero-gathering.jpg";
+import studioImg from "@assets/quiet_archive/prints-in-hand.jpg";
+import galleryImg1 from "@assets/quiet_archive/birthday-candid.jpg";
+import stripImg from "@assets/quiet_archive/wedding-keepsake.jpg";
 
 export default function Home() {
   return (
@@ -60,7 +60,7 @@ export default function Home() {
                 In a world overflowing with digital noise, a physical print holds weight. It's not swiped past or lost in the cloud; it's tucked into a wallet, pinned to a mirror, framed on a mantle.
               </p>
               <p>
-                Memento brings an editorial eye and timeless restraint to event photography. We discard the props and chaos for beautiful lighting, elegant backdrops, and portraiture that endures.
+                Memento creates photo experiences that turn fleeting moments into memories you can hold, share and keep — because some moments deserve to live beyond your camera roll.
               </p>
             </div>
             <Link href="/experiences" className="mt-12 group">
@@ -72,7 +72,7 @@ export default function Home() {
 
       {/* Triple Image Strip */}
       <section className="py-24 bg-card w-full overflow-hidden flex flex-col items-center">
-        <p className="font-sans text-xs tracking-[0.2em] uppercase text-primary/70 mb-16">A Glimpse of the Archive</p>
+        <p className="font-sans text-xs tracking-[0.2em] uppercase text-primary/70 mb-16">The feeling, imagined · AI illustrations</p>
         <div className="flex flex-col md:flex-row gap-4 md:gap-8 w-full max-w-[1400px] px-4 md:px-12 justify-center items-center">
           <div className="aspect-[4/5] w-full max-w-[400px] bg-muted relative group overflow-hidden flex items-center justify-center">
              <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105 filter grayscale-[0.2] contrast-[0.9]" style={{ backgroundImage: `url(${galleryImg1})` }} />
@@ -99,7 +99,7 @@ export default function Home() {
             Give it a place<br /><em>in the archive.</em>
           </h2>
           <p className="font-light text-primary/80 text-lg mb-12 max-w-lg">
-            Our calendar fills quietly but quickly. Connect with us to curate a bespoke print experience for your upcoming gathering.
+            Tell us about your gathering. We’ll check availability and help you choose the details that make it yours.
           </p>
           <Link href="/book">
             <Button variant="outline" className="rounded-none border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs h-14 px-12 transition-all duration-700 bg-transparent">

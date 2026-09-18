@@ -10,6 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@workspace/business": "workspace:*",
+    "nodemailer": "^7.0.0",
     "@clerk/express": "^2.1.64",
     "@clerk/shared": "^4.30.2",
     "@workspace/api-zod": "workspace:*",
@@ -23,6 +25,7 @@
     "pino-http": "^10.5.0"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

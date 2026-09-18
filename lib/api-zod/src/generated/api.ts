@@ -15,7 +15,8 @@ export const HealthCheckResponse = zod.object({
 
 export const GetSiteSettingsResponse = zod.object({
   "bookingOpeningDate": zod.coerce.date(),
-  "earlyBookingMode": zod.boolean()
+  "earlyBookingMode": zod.boolean(),
+  "pricingVersion": zod.string().optional()
 })
 
 
@@ -28,7 +29,9 @@ export const GetAvailabilityResponseItem = zod.object({
   "date": zod.coerce.date(),
   "startTime": zod.string().nullable(),
   "endTime": zod.string().nullable(),
-  "reason": zod.enum(['confirmed', 'blocked'])
+  "reason": zod.enum(['confirmed', 'blocked']),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional()
 })
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
 
@@ -71,6 +74,8 @@ export const createBookingBodyEarlyRequestDefault = false;
 
 export const CreateBookingBody = zod.object({
   "customerType": zod.enum(['individual', 'organization']),
+  "packageId": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
   "organizationName": zod.string().max(createBookingBodyOrganizationNameMax).nullish(),
   "fullName": zod.string().min(createBookingBodyFullNameMin).max(createBookingBodyFullNameMax),
   "phone": zod.string().min(createBookingBodyPhoneMin).max(createBookingBodyPhoneMax),
@@ -99,10 +104,12 @@ export const CreateBookingResponse = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
-  "hourlyRateRwf": zod.number(),
-  "totalAmountRwf": zod.number(),
-  "depositPercentage": zod.number(),
-  "depositAmountRwf": zod.number(),
+  "packageName": zod.string().nullish(),
+  "quoteRequired": zod.boolean().optional(),
+  "hourlyRateRwf": zod.number().nullable(),
+  "totalAmountRwf": zod.number().nullable(),
+  "depositPercentage": zod.number().nullable(),
+  "depositAmountRwf": zod.number().nullable(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed'])
 })
 
@@ -150,6 +157,8 @@ export const listBookingsResponseOneEarlyRequestDefault = false;
 
 export const ListBookingsResponseItem = zod.object({
   "customerType": zod.enum(['individual', 'organization']),
+  "packageId": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
   "organizationName": zod.string().max(listBookingsResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(listBookingsResponseOneFullNameMin).max(listBookingsResponseOneFullNameMax),
   "phone": zod.string().min(listBookingsResponseOnePhoneMin).max(listBookingsResponseOnePhoneMax),
@@ -176,12 +185,18 @@ export const ListBookingsResponseItem = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
-  "hourlyRateRwf": zod.number(),
-  "totalAmountRwf": zod.number(),
-  "depositPercentage": zod.number(),
-  "depositAmountRwf": zod.number(),
+  "packageName": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
+  "basePriceRwf": zod.number().nullish(),
+  "includedHours": zod.number().nullish(),
+  "quoteRequired": zod.boolean().optional(),
+  "hourlyRateRwf": zod.number().nullable(),
+  "totalAmountRwf": zod.number().nullable(),
+  "depositPercentage": zod.number().nullable(),
+  "depositAmountRwf": zod.number().nullable(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mtn_momo']),
+  "paymentMethod": zod.string().nullable(),
+  "notificationStatus": zod.enum(['sent', 'pending', 'retrying', 'not_configured', 'none']).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -235,6 +250,8 @@ export const getBookingResponseOneEarlyRequestDefault = false;
 
 export const GetBookingResponse = zod.object({
   "customerType": zod.enum(['individual', 'organization']),
+  "packageId": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
   "organizationName": zod.string().max(getBookingResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(getBookingResponseOneFullNameMin).max(getBookingResponseOneFullNameMax),
   "phone": zod.string().min(getBookingResponseOnePhoneMin).max(getBookingResponseOnePhoneMax),
@@ -261,12 +278,18 @@ export const GetBookingResponse = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
-  "hourlyRateRwf": zod.number(),
-  "totalAmountRwf": zod.number(),
-  "depositPercentage": zod.number(),
-  "depositAmountRwf": zod.number(),
+  "packageName": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
+  "basePriceRwf": zod.number().nullish(),
+  "includedHours": zod.number().nullish(),
+  "quoteRequired": zod.boolean().optional(),
+  "hourlyRateRwf": zod.number().nullable(),
+  "totalAmountRwf": zod.number().nullable(),
+  "depositPercentage": zod.number().nullable(),
+  "depositAmountRwf": zod.number().nullable(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mtn_momo']),
+  "paymentMethod": zod.string().nullable(),
+  "notificationStatus": zod.enum(['sent', 'pending', 'retrying', 'not_configured', 'none']).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({
@@ -323,6 +346,8 @@ export const updateBookingResponseOneEarlyRequestDefault = false;
 
 export const UpdateBookingResponse = zod.object({
   "customerType": zod.enum(['individual', 'organization']),
+  "packageId": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
   "organizationName": zod.string().max(updateBookingResponseOneOrganizationNameMax).nullish(),
   "fullName": zod.string().min(updateBookingResponseOneFullNameMin).max(updateBookingResponseOneFullNameMax),
   "phone": zod.string().min(updateBookingResponseOnePhoneMin).max(updateBookingResponseOnePhoneMax),
@@ -349,12 +374,18 @@ export const UpdateBookingResponse = zod.object({
   "reference": zod.string(),
   "status": zod.enum(['pending', 'contacted', 'confirmed', 'declined', 'cancelled']),
   "potentialConflict": zod.boolean(),
-  "hourlyRateRwf": zod.number(),
-  "totalAmountRwf": zod.number(),
-  "depositPercentage": zod.number(),
-  "depositAmountRwf": zod.number(),
+  "packageName": zod.string().nullish(),
+  "pricingVersion": zod.string().nullish(),
+  "basePriceRwf": zod.number().nullish(),
+  "includedHours": zod.number().nullish(),
+  "quoteRequired": zod.boolean().optional(),
+  "hourlyRateRwf": zod.number().nullable(),
+  "totalAmountRwf": zod.number().nullable(),
+  "depositPercentage": zod.number().nullable(),
+  "depositAmountRwf": zod.number().nullable(),
   "paymentStatus": zod.enum(['not_due', 'due', 'paid', 'failed']),
-  "paymentMethod": zod.enum(['mtn_momo']),
+  "paymentMethod": zod.string().nullable(),
+  "notificationStatus": zod.enum(['sent', 'pending', 'retrying', 'not_configured', 'none']).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
   "adminNotes": zod.array(zod.object({

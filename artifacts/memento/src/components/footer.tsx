@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { business, whatsappUrl } from "@workspace/business";
 
 export function Footer() {
   return (
@@ -16,17 +17,18 @@ export function Footer() {
              A considered photo experience for gatherings in Kigali. Printed, shared, and made to keep.
           </p>
           <div className="flex flex-col gap-2">
-            <a href="https://wa.me/250788628735" target="_blank" rel="noreferrer" className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
+            {whatsappUrl() && <a href={whatsappUrl()!} target="_blank" rel="noreferrer" className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
               WhatsApp
-            </a>
-            <a href="tel:0788628735" className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
+            </a>}
+            <a href={`tel:${business.contact.phone}`} className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
               0788 628 735
             </a>
-            {import.meta.env.VITE_PUBLIC_CONTACT_EMAIL && (
-              <a href={`mailto:${import.meta.env.VITE_PUBLIC_CONTACT_EMAIL}`} className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
-                {import.meta.env.VITE_PUBLIC_CONTACT_EMAIL}
+            {business.contact.email && (
+              <a href={`mailto:${business.contact.email}`} className="text-sm tracking-wider hover:text-olive transition-colors inline-flex items-center gap-2">
+                {business.contact.email}
               </a>
             )}
+            <a href={business.contact.instagram} target="_blank" rel="noreferrer" className="text-sm hover:text-olive">Instagram · @memento_kigali</a>
           </div>
         </div>
         

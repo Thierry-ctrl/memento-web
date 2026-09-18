@@ -14,4 +14,6 @@ export interface AvailabilityWindow {
   /** @nullable */
   endTime: string | null;
   reason: AvailabilityWindowReason;
+  startsAt?: Date;
+  endsAt?: Date;
 }

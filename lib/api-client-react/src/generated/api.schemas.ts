@@ -41,6 +41,7 @@ export const PaymentStatus = {
 export interface SiteSettings {
   bookingOpeningDate: string;
   earlyBookingMode: boolean;
+  pricingVersion?: string;
 }
 
 export type BookingInputPreferredContactMethod = typeof BookingInputPreferredContactMethod[keyof typeof BookingInputPreferredContactMethod];
@@ -54,6 +55,10 @@ export const BookingInputPreferredContactMethod = {
 
 export interface BookingInput {
   customerType: CustomerType;
+  /** @nullable */
+  packageId?: string | null;
+  /** @nullable */
+  pricingVersion?: string | null;
   /**
      * @maxLength 160
      * @nullable
@@ -137,10 +142,17 @@ export interface BookingConfirmation {
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
-  hourlyRateRwf: number;
-  totalAmountRwf: number;
-  depositPercentage: number;
-  depositAmountRwf: number;
+  /** @nullable */
+  packageName?: string | null;
+  quoteRequired?: boolean;
+  /** @nullable */
+  hourlyRateRwf: number | null;
+  /** @nullable */
+  totalAmountRwf: number | null;
+  /** @nullable */
+  depositPercentage: number | null;
+  /** @nullable */
+  depositAmountRwf: number | null;
   paymentStatus: PaymentStatus;
 }
 
@@ -150,28 +162,47 @@ export interface AdminNote {
   createdAt: string;
 }
 
-export type BookingPaymentMethod = typeof BookingPaymentMethod[keyof typeof BookingPaymentMethod];
+export type BookingNotificationStatus = typeof BookingNotificationStatus[keyof typeof BookingNotificationStatus];
 
 
-export const BookingPaymentMethod = {
-  mtn_momo: 'mtn_momo',
+export const BookingNotificationStatus = {
+  sent: 'sent',
+  pending: 'pending',
+  retrying: 'retrying',
+  not_configured: 'not_configured',
+  none: 'none',
 } as const;
 
-export type Booking = BookingInput & {
+export type Booking = BookingInput & ({
   id: number;
   reference: string;
   status: BookingStatus;
   potentialConflict: boolean;
-  hourlyRateRwf: number;
-  totalAmountRwf: number;
-  depositPercentage: number;
-  depositAmountRwf: number;
+  /** @nullable */
+  packageName?: string | null;
+  /** @nullable */
+  pricingVersion?: string | null;
+  /** @nullable */
+  basePriceRwf?: number | null;
+  /** @nullable */
+  includedHours?: number | null;
+  quoteRequired?: boolean;
+  /** @nullable */
+  hourlyRateRwf: number | null;
+  /** @nullable */
+  totalAmountRwf: number | null;
+  /** @nullable */
+  depositPercentage: number | null;
+  /** @nullable */
+  depositAmountRwf: number | null;
   paymentStatus: PaymentStatus;
-  paymentMethod: BookingPaymentMethod;
+  /** @nullable */
+  paymentMethod: string | null;
+  notificationStatus?: BookingNotificationStatus;
   createdAt: string;
   updatedAt: string;
   adminNotes: AdminNote[];
-};
+});
 
 export interface BookingUpdate {
   status: BookingStatus;
@@ -200,6 +231,8 @@ export interface AvailabilityWindow {
   /** @nullable */
   endTime: string | null;
   reason: AvailabilityWindowReason;
+  startsAt?: string;
+  endsAt?: string;
 }
 
 export interface BlockedAvailabilityInput {

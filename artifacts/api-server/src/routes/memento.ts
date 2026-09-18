@@ -1,25 +1,27 @@
 import { Router, type IRouter, type RequestHandler } from "express";
-import { and, asc, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
-import { getAuth } from "@clerk/express";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  or,
+  sql,
+  lt,
+  gt,
+} from "drizzle-orm";
+import { clerkClient, getAuth } from "@clerk/express";
 import {
   AddBookingNoteBody,
-  AddBookingNoteParams,
   CreateBlockedAvailabilityBody,
-  CreateBlockedAvailabilityResponse,
   CreateBookingBody,
   CreateBookingResponse,
-  DeleteBlockedAvailabilityParams,
-  GetAdminSummaryResponse,
-  GetAvailabilityQueryParams,
-  GetAvailabilityResponse,
-  GetBookingParams,
   GetBookingResponse,
-  GetSiteSettingsResponse,
-  ListBlockedAvailabilityResponse,
   ListBookingsQueryParams,
   ListBookingsResponse,
   UpdateBookingBody,
-  UpdateBookingParams,
   UpdateBookingResponse,
 } from "@workspace/api-zod";
 import {
@@ -27,288 +29,342 @@ import {
   blockedAvailabilityTable,
   bookingRequestsTable,
   db,
-  siteSettingsTable,
 } from "@workspace/db";
+import { business, isDate, kigaliToday } from "@workspace/business";
+import {
+  BookingError,
+  createRequest,
+  changeStatus,
+  blockDate,
+  unblockDate,
+  blockedWindow,
+} from "../lib/booking-service";
+import { notificationStates } from "../lib/notifications";
 
 const router: IRouter = Router();
 const requestTimes = new Map<string, number[]>();
-
-const requireAdmin: RequestHandler = (req, res, next) => {
+const cleanup = setInterval(() => {
+  for (const [ip, times] of requestTimes)
+    if (!times.some((t) => Date.now() - t < 900000)) requestTimes.delete(ip);
+}, 60000);
+cleanup.unref();
+const requireAdmin: RequestHandler = async (req, res, next) => {
   const auth = getAuth(req);
   if (!auth.userId) {
-    res.status(401).json({ error: "Unauthorized" });
+    res.status(401).json({ error: "Please sign in." });
     return;
   }
   const allowlisted = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   if (!allowlisted) {
-    res.status(503).json({ error: "Administrator access is not configured" });
+    res.status(503).json({ error: "Administrator access is not configured." });
     return;
   }
-  const claimEmail = String(
-    auth.sessionClaims?.email ??
-      auth.sessionClaims?.email_address ??
-      "",
-  ).toLowerCase();
-  if (claimEmail !== allowlisted) {
-    res.status(403).json({ error: "Administrator access required" });
+  // Default Clerk sessions do not include email; use the verified account identity.
+  const user = await clerkClient.users.getUser(auth.userId);
+  if (
+    !user.emailAddresses.some(
+      (e) =>
+        e.emailAddress.toLowerCase() === allowlisted &&
+        e.verification?.status === "verified",
+    )
+  ) {
+    res
+      .status(403)
+      .json({ error: "This account does not have administrator access." });
     return;
   }
   next();
 };
-
-function dateString(value: Date | string): string {
-  if (typeof value === "string") return value.slice(0, 10);
-  return value.toISOString().slice(0, 10);
+function idParam(value: string | string[]) {
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id < 1)
+    throw new BookingError("Invalid identifier.");
+  return id;
 }
-
-function overlaps(startA: string, endA: string | null, startB: string | null, endB: string | null): boolean {
-  if (!startB || !endB || !endA) return true;
-  return startA < endB && endA > startB;
-}
-
-function endTimeFromDuration(startTime: string, durationHours: number): string {
-  const [hours, minutes] = startTime.split(":").map(Number);
-  const totalMinutes = hours * 60 + minutes + durationHours * 60;
-  const endHours = Math.floor(totalMinutes / 60);
-  if (endHours >= 24) return "23:59";
-  return `${String(endHours).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
-}
-
-async function notesFor(ids: number[]) {
-  if (!ids.length) return new Map<number, Array<{ id: number; note: string; createdAt: Date }>>();
-  const notes = await db.select().from(adminNotesTable).where(sql`${adminNotesTable.bookingId} = ANY(${ids})`).orderBy(asc(adminNotesTable.createdAt));
-  const map = new Map<number, Array<{ id: number; note: string; createdAt: Date }>>();
-  for (const note of notes) {
-    const list = map.get(note.bookingId) ?? [];
-    list.push({ id: note.id, note: note.note, createdAt: note.createdAt });
-    map.set(note.bookingId, list);
-  }
-  return map;
-}
-
-function serializeBooking(booking: typeof bookingRequestsTable.$inferSelect, adminNotes: Array<{ id: number; note: string; createdAt: Date }> = []) {
-  return {
-    ...booking,
-    durationHours: booking.durationHours ?? null,
-    endTime: booking.endTime?.slice(0, 5) ?? null,
-    startTime: booking.startTime.slice(0, 5),
-    email: booking.email ?? null,
-    brandedRequirements: booking.brandedRequirements ?? null,
-    notes: booking.notes ?? null,
-    adminNotes,
-  };
-}
-
-router.get("/settings", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(siteSettingsTable);
-  const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
-  res.json(GetSiteSettingsResponse.parse({
-    bookingOpeningDate: settings.booking_opening_date ?? "2026-10-01",
-    earlyBookingMode: (settings.early_booking_mode ?? "true") === "true",
+async function serializeBookings(
+  rows: Array<typeof bookingRequestsTable.$inferSelect>,
+) {
+  const ids = rows.map((row) => row.id);
+  const notes = ids.length
+    ? await db
+        .select()
+        .from(adminNotesTable)
+        .where(inArray(adminNotesTable.bookingId, ids))
+        .orderBy(asc(adminNotesTable.createdAt))
+    : [];
+  const notifications = await notificationStates(ids);
+  return rows.map((row) => ({
+    ...row,
+    startTime: row.startTime.slice(0, 5),
+    endTime: row.endTime?.slice(0, 5) ?? null,
+    adminNotes: notes.filter((note) => note.bookingId === row.id),
+    notificationStatus: notifications.get(row.id) || "none",
   }));
+}
+router.get("/settings", (_req, res) => {
+  res.json({
+    bookingOpeningDate: business.booking.earliestEventDate,
+    earlyBookingMode: business.booking.acceptEarlyRequests,
+    pricingVersion: business.pricingVersion,
+  });
 });
-
-router.get("/availability", async (req, res): Promise<void> => {
-  const fromParam = typeof req.query.from === "string" ? req.query.from : "";
-  const toParam = typeof req.query.to === "string" ? req.query.to : "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromParam) || !/^\d{4}-\d{2}-\d{2}$/.test(toParam)) {
-    res.status(400).json({ error: "Valid from and to dates are required." });
-    return;
-  }
-  const from = fromParam;
-  const to = toParam;
+router.get("/availability", async (req, res) => {
+  const from = String(req.query.from || ""),
+    to = String(req.query.to || "");
+  if (
+    !isDate(from) ||
+    !isDate(to) ||
+    from > to ||
+    Date.parse(to) - Date.parse(from) > 366 * 86400000
+  )
+    throw new BookingError("Choose a valid date range of up to one year.");
+  const rangeStart = new Date(`${from}T00:00:00+02:00`);
+  const rangeEnd = new Date(
+    new Date(`${to}T00:00:00+02:00`).getTime() + 86400000,
+  );
   const [blocked, confirmed] = await Promise.all([
-    db.select().from(blockedAvailabilityTable).where(and(gte(blockedAvailabilityTable.date, from), lte(blockedAvailabilityTable.date, to))),
-    db.select().from(bookingRequestsTable).where(and(eq(bookingRequestsTable.status, "confirmed"), gte(bookingRequestsTable.eventDate, from), lte(bookingRequestsTable.eventDate, to))),
+    db.select().from(blockedAvailabilityTable),
+    db
+      .select()
+      .from(bookingRequestsTable)
+      .where(
+        and(
+          eq(bookingRequestsTable.status, "confirmed"),
+          lt(bookingRequestsTable.startsAt, rangeEnd),
+          gt(bookingRequestsTable.endsAt, rangeStart),
+        ),
+      ),
   ]);
-  res.json(GetAvailabilityResponse.parse([
-    ...blocked.map((item) => ({ date: item.date, startTime: item.startTime?.slice(0, 5) ?? null, endTime: item.endTime?.slice(0, 5) ?? null, reason: "blocked" })),
-    ...confirmed.map((item) => ({ date: item.eventDate, startTime: item.startTime.slice(0, 5), endTime: item.endTime?.slice(0, 5) ?? null, reason: "confirmed" })),
-  ]));
+  res.json([
+    ...blocked
+      .map((row) => ({ row, range: blockedWindow(row) }))
+      .filter(
+        ({ range }) => range.startAt < rangeEnd && range.endAt > rangeStart,
+      )
+      .map(({ row, range }) => ({
+        date: row.date,
+        startTime: row.startTime?.slice(0, 5) ?? null,
+        endTime: row.endTime?.slice(0, 5) ?? null,
+        reason: "blocked",
+        startsAt: range.startAt,
+        endsAt: range.endAt,
+      })),
+    ...confirmed.map((row) => ({
+      date: row.eventDate,
+      startTime: row.startTime.slice(0, 5),
+      endTime: row.endTime?.slice(0, 5) ?? null,
+      reason: "confirmed",
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+    })),
+  ]);
 });
-
-router.post("/bookings", async (req, res): Promise<void> => {
-  const ip = req.ip ?? "unknown";
-  const now = Date.now();
-  const recent = (requestTimes.get(ip) ?? []).filter((time) => now - time < 15 * 60_000);
-  if (recent.length >= 5) {
-    res.status(429).json({ error: "Please wait before submitting another request." });
-    return;
+router.post("/bookings", async (req, res) => {
+  const ip = req.ip || "unknown",
+    now = Date.now();
+  const recent = (requestTimes.get(ip) || []).filter((t) => now - t < 900000);
+  if (recent.length >= 10) {
+    res.setHeader("Retry-After", "900");
+    throw new BookingError(
+      "Please wait before submitting another request.",
+      429,
+    );
   }
-  const parsed = CreateBookingBody.safeParse(req.body);
-  if (!parsed.success || parsed.data.website || !parsed.data.consent) {
-    res.status(400).json({ error: "Please review the required booking details." });
-    return;
-  }
-  const eventDate = dateString(parsed.data.eventDate);
-  if (parsed.data.customerType === "organization" && !parsed.data.organizationName?.trim()) {
-    res.status(400).json({ error: "Organization name is required for organization bookings." });
-    return;
-  }
-  if (!Number.isInteger(parsed.data.durationHours)) {
-    res.status(400).json({ error: "Booking duration must be a whole number of hours." });
-    return;
-  }
-  if (eventDate < new Date().toISOString().slice(0, 10)) {
-    res.status(400).json({ error: "Event date cannot be in the past." });
-    return;
-  }
-  const [sameDate, blocked] = await Promise.all([
-    db.select().from(bookingRequestsTable).where(and(eq(bookingRequestsTable.eventDate, eventDate), or(eq(bookingRequestsTable.status, "pending"), eq(bookingRequestsTable.status, "contacted"), eq(bookingRequestsTable.status, "confirmed")))),
-    db.select().from(blockedAvailabilityTable).where(eq(blockedAvailabilityTable.date, eventDate)),
-  ]);
-  const endTime = parsed.data.endTime ?? endTimeFromDuration(parsed.data.startTime, parsed.data.durationHours);
-  const hourlyRateRwf = 150_000;
-  const depositPercentage = 30;
-  const totalAmountRwf = parsed.data.durationHours * hourlyRateRwf;
-  const depositAmountRwf = Math.round(totalAmountRwf * (depositPercentage / 100));
-  const blockedConflict = blocked.some((item) => overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime));
-  const confirmedConflict = sameDate.some((item) =>
-    item.status === "confirmed" && overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime),
-  );
-  if (blockedConflict || confirmedConflict) {
-    res.status(409).json({
-      error: "That time is unavailable. Please choose another date or time.",
-    });
-    return;
-  }
-  const conflict = sameDate.some((item) =>
-    item.status !== "confirmed" && overlaps(parsed.data.startTime, endTime, item.startTime, item.endTime),
-  );
-  const reference = `MEM-${eventDate.replaceAll("-", "")}-${crypto.randomUUID().slice(0, 5).toUpperCase()}`;
-  const [created] = await db.insert(bookingRequestsTable).values({
-    ...parsed.data,
-    organizationName: parsed.data.customerType === "organization" ? parsed.data.organizationName?.trim() : null,
-    email: parsed.data.email ?? null,
-    eventDate,
-    endTime,
-    durationHours: parsed.data.durationHours,
-    guestCount: Math.round(parsed.data.guestCount),
-    addOns: parsed.data.addOns ?? [],
-    brandedRequirements: parsed.data.brandedRequirements ?? null,
-    notes: parsed.data.notes ?? null,
-    reference,
-    potentialConflict: conflict,
-    hourlyRateRwf,
-    totalAmountRwf,
-    depositPercentage,
-    depositAmountRwf,
-    paymentStatus: "not_due",
-    paymentMethod: "mtn_momo",
-  }).returning();
   requestTimes.set(ip, [...recent, now]);
-  res.status(201).json(CreateBookingResponse.parse(created));
+  const parsed = CreateBookingBody.safeParse(req.body);
+  if (
+    !parsed.success ||
+    parsed.data.website ||
+    !parsed.data.consent ||
+    typeof req.body.eventDate !== "string" ||
+    !isDate(req.body.eventDate)
+  )
+    throw new BookingError("Please review the required booking details.");
+  if (req.body.pricingVersion !== business.pricingVersion)
+    throw new BookingError(
+      "Our package details have changed. Refresh this page and review the current estimate before submitting.",
+      409,
+    );
+  const row = await createRequest({
+    ...parsed.data,
+    eventDate: req.body.eventDate,
+  });
+  res.status(201).json(CreateBookingResponse.parse(row));
 });
-
 router.use("/admin", requireAdmin);
-
-router.get("/admin/bookings", async (req, res): Promise<void> => {
+router.get("/admin/bookings", async (req, res) => {
   const parsed = ListBookingsQueryParams.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+  if (!parsed.success) throw new BookingError("Invalid filters.");
   const filters = [];
-  if (parsed.data.status) filters.push(eq(bookingRequestsTable.status, parsed.data.status));
+  if (parsed.data.status)
+    filters.push(eq(bookingRequestsTable.status, parsed.data.status));
   if (parsed.data.search) {
     const term = `%${parsed.data.search}%`;
-    filters.push(or(ilike(bookingRequestsTable.reference, term), ilike(bookingRequestsTable.fullName, term), ilike(bookingRequestsTable.eventType, term)));
+    filters.push(
+      or(
+        ilike(bookingRequestsTable.reference, term),
+        ilike(bookingRequestsTable.fullName, term),
+        ilike(bookingRequestsTable.eventType, term),
+      ),
+    );
   }
-  const rows = await db.select().from(bookingRequestsTable).where(filters.length ? and(...filters) : undefined).orderBy(desc(bookingRequestsTable.createdAt));
-  const notes = await notesFor(rows.map((row) => row.id));
-  res.json(ListBookingsResponse.parse(rows.map((row) => serializeBooking(row, notes.get(row.id)))));
+  const rows = await db
+    .select()
+    .from(bookingRequestsTable)
+    .where(filters.length ? and(...filters) : undefined)
+    .orderBy(desc(bookingRequestsTable.createdAt));
+  res.json(ListBookingsResponse.parse(await serializeBookings(rows)));
 });
-
-router.get("/admin/bookings/:id", async (req, res): Promise<void> => {
-  const parsed = GetBookingParams.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const [row] = await db.select().from(bookingRequestsTable).where(eq(bookingRequestsTable.id, parsed.data.id));
-  if (!row) {
-    res.status(404).json({ error: "Booking not found" });
-    return;
-  }
-  const notes = await notesFor([row.id]);
-  res.json(GetBookingResponse.parse(serializeBooking(row, notes.get(row.id))));
+router.get("/admin/bookings/:id", async (req, res) => {
+  const [row] = await db
+    .select()
+    .from(bookingRequestsTable)
+    .where(eq(bookingRequestsTable.id, idParam(req.params.id)));
+  if (!row) throw new BookingError("Booking not found.", 404);
+  res.json(GetBookingResponse.parse((await serializeBookings([row]))[0]));
 });
-
-router.patch("/admin/bookings/:id", async (req, res): Promise<void> => {
-  const params = UpdateBookingParams.safeParse(req.params);
-  const body = UpdateBookingBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid update" });
-    return;
-  }
-  const [row] = await db.update(bookingRequestsTable).set({
-    status: body.data.status,
-    paymentStatus: body.data.status === "confirmed" ? "due" : "not_due",
-  }).where(eq(bookingRequestsTable.id, params.data.id)).returning();
-  if (!row) {
-    res.status(404).json({ error: "Booking not found" });
-    return;
-  }
-  const notes = await notesFor([row.id]);
-  res.json(UpdateBookingResponse.parse(serializeBooking(row, notes.get(row.id))));
+router.patch("/admin/bookings/:id", async (req, res) => {
+  const parsed = UpdateBookingBody.safeParse(req.body);
+  if (!parsed.success) throw new BookingError("Invalid update.");
+  const row = await changeStatus(idParam(req.params.id), parsed.data.status);
+  res.json(UpdateBookingResponse.parse((await serializeBookings([row]))[0]));
 });
-
-router.post("/admin/bookings/:id/notes", async (req, res): Promise<void> => {
-  const params = AddBookingNoteParams.safeParse(req.params);
-  const body = AddBookingNoteBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid note" });
-    return;
-  }
-  const [note] = await db.insert(adminNotesTable).values({ bookingId: params.data.id, note: body.data.note }).returning();
-  res.status(201).json({ id: note.id, note: note.note, createdAt: note.createdAt });
+router.post("/admin/bookings/:id/notes", async (req, res) => {
+  const id = idParam(req.params.id),
+    body = AddBookingNoteBody.safeParse(req.body);
+  if (!body.success || !body.data.note.trim())
+    throw new BookingError("Enter a note.");
+  const [booking] = await db
+    .select({ id: bookingRequestsTable.id })
+    .from(bookingRequestsTable)
+    .where(eq(bookingRequestsTable.id, id));
+  if (!booking) throw new BookingError("Booking not found.", 404);
+  const [note] = await db
+    .insert(adminNotesTable)
+    .values({ bookingId: id, note: body.data.note.trim() })
+    .returning();
+  res.status(201).json(note);
 });
-
-router.get("/admin/availability", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(blockedAvailabilityTable).orderBy(asc(blockedAvailabilityTable.date));
-  res.json(ListBlockedAvailabilityResponse.parse(rows.map((row) => ({ ...row, startTime: row.startTime?.slice(0, 5) ?? null, endTime: row.endTime?.slice(0, 5) ?? null }))));
+router.get("/admin/availability", async (_req, res) => {
+  res.json(
+    await db
+      .select()
+      .from(blockedAvailabilityTable)
+      .orderBy(asc(blockedAvailabilityTable.date)),
+  );
 });
-
-router.post("/admin/availability", async (req, res): Promise<void> => {
+router.post("/admin/availability", async (req, res) => {
   const parsed = CreateBlockedAvailabilityBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const [row] = await db.insert(blockedAvailabilityTable).values({
-    ...parsed.data,
-    date: dateString(parsed.data.date),
-    startTime: parsed.data.startTime ?? null,
-    endTime: parsed.data.endTime ?? null,
-  }).returning();
-  res.status(201).json(CreateBlockedAvailabilityResponse.parse({ ...row, startTime: row.startTime?.slice(0, 5) ?? null, endTime: row.endTime?.slice(0, 5) ?? null }));
+  if (!parsed.success || !isDate(req.body.date))
+    throw new BookingError("Check the date and reason.");
+  res
+    .status(201)
+    .json(await blockDate({ ...parsed.data, date: req.body.date }));
 });
-
-router.delete("/admin/availability/:id", async (req, res): Promise<void> => {
-  const parsed = DeleteBlockedAvailabilityParams.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  await db.delete(blockedAvailabilityTable).where(eq(blockedAvailabilityTable.id, parsed.data.id));
+router.delete("/admin/availability/:id", async (req, res) => {
+  await unblockDate(idParam(req.params.id));
   res.sendStatus(204);
 });
-
-router.get("/admin/summary", async (_req, res): Promise<void> => {
-  const rows = await db.select({ status: bookingRequestsTable.status, count: sql<number>`count(*)::int` }).from(bookingRequestsTable).groupBy(bookingRequestsTable.status);
+router.get("/admin/summary", async (_req, res) => {
+  const rows = await db
+    .select({
+      status: bookingRequestsTable.status,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(bookingRequestsTable)
+    .groupBy(bookingRequestsTable.status);
   const counts = Object.fromEntries(rows.map((row) => [row.status, row.count]));
-  const [conflicts] = await db.select({ count: sql<number>`count(*)::int` }).from(bookingRequestsTable).where(eq(bookingRequestsTable.potentialConflict, true));
-  const [upcoming] = await db.select({ count: sql<number>`count(*)::int` }).from(bookingRequestsTable).where(and(eq(bookingRequestsTable.status, "confirmed"), gte(bookingRequestsTable.eventDate, new Date().toISOString().slice(0, 10))));
-  const total = rows.reduce((sum, row) => sum + row.count, 0);
-  res.json(GetAdminSummaryResponse.parse({ total, pending: counts.pending ?? 0, contacted: counts.contacted ?? 0, confirmed: counts.confirmed ?? 0, declined: counts.declined ?? 0, cancelled: counts.cancelled ?? 0, potentialConflicts: conflicts.count, upcomingConfirmed: upcoming.count }));
+  const [conflicts] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(bookingRequestsTable)
+    .where(eq(bookingRequestsTable.potentialConflict, true));
+  const [upcoming] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(bookingRequestsTable)
+    .where(
+      and(
+        eq(bookingRequestsTable.status, "confirmed"),
+        gte(bookingRequestsTable.eventDate, kigaliToday()),
+      ),
+    );
+  res.json({
+    total: rows.reduce((sum, row) => sum + row.count, 0),
+    pending: counts.pending || 0,
+    contacted: counts.contacted || 0,
+    confirmed: counts.confirmed || 0,
+    declined: counts.declined || 0,
+    cancelled: counts.cancelled || 0,
+    potentialConflicts: conflicts.count,
+    upcomingConfirmed: upcoming.count,
+  });
 });
-
-router.get("/admin/export.csv", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(bookingRequestsTable).orderBy(desc(bookingRequestsTable.createdAt));
-  const quote = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
-  const header = ["Reference", "Status", "Customer type", "Organization", "Name", "Phone", "Email", "Event", "Date", "Start", "Hours", "Venue", "Location", "Guests", "Total RWF", "Deposit RWF", "Payment", "Conflict"];
-  const csv = [header.map(quote).join(","), ...rows.map((row) => [row.reference, row.status, row.customerType, row.organizationName, row.fullName, row.phone, row.email, row.eventType, row.eventDate, row.startTime, row.durationHours, row.venue, row.location, row.guestCount, row.totalAmountRwf, row.depositAmountRwf, row.paymentStatus, row.potentialConflict].map(quote).join(","))].join("\n");
-  res.type("text/csv").setHeader("Content-Disposition", "attachment; filename=memento-bookings.csv").send(csv);
+router.get("/admin/export.csv", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(bookingRequestsTable)
+    .orderBy(desc(bookingRequestsTable.createdAt));
+  const quote = (value: unknown) => {
+    let s = String(value ?? "");
+    if (/^[=+\-@\t\r\n]/.test(s)) s = `'${s}`;
+    return `"${s.replaceAll('"', '""')}"`;
+  };
+  const header = [
+    "Reference",
+    "Status",
+    "Customer",
+    "Organization",
+    "Name",
+    "Phone",
+    "Email",
+    "Event",
+    "Date",
+    "Start",
+    "Hours",
+    "Venue",
+    "Location",
+    "Guests",
+    "Package",
+    "Package estimate RWF",
+    "Add-ons",
+    "Quote required",
+    "Pricing version",
+    "Conflict",
+  ];
+  const csv = [
+    header.map(quote).join(","),
+    ...rows.map((row) =>
+      [
+        row.reference,
+        row.status,
+        row.customerType,
+        row.organizationName,
+        row.fullName,
+        row.phone,
+        row.email,
+        row.eventType,
+        row.eventDate,
+        row.startTime,
+        row.durationHours,
+        row.venue,
+        row.location,
+        row.guestCount,
+        row.packageName,
+        row.totalAmountRwf,
+        row.addOns.join("; "),
+        row.quoteRequired,
+        row.pricingVersion,
+        row.potentialConflict,
+      ]
+        .map(quote)
+        .join(","),
+    ),
+  ].join("\n");
+  res
+    .type("text/csv")
+    .setHeader(
+      "Content-Disposition",
+      "attachment; filename=memento-bookings.csv",
+    )
+    .send(csv);
 });
-
 export default router;

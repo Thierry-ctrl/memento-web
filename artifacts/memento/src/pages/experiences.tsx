@@ -1,122 +1,107 @@
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-
-// Assets
-import studioImg from "@assets/generated_images/memento_kigali_portrait.jpg";
-import stripImg from "@assets/generated_images/memento_kigali_prints.jpg";
+import { business, formatRwf } from "@workspace/business";
+import birthday from "@assets/quiet_archive/birthday-candid.jpg";
+import wedding from "@assets/quiet_archive/wedding-keepsake.jpg";
+import corporate from "@assets/quiet_archive/corporate-gathering.jpg";
+import booth from "@assets/quiet_archive/booth-experience.jpg";
 
 export default function Experiences() {
-  const experiences = [
-    {
-      title: "The Memento Experience",
-      description: "A tailored photo experience for your gathering. The layout, print format and backdrop can adapt to the event—there is no single fixed photo-strip design.",
-      features: [
-        "Custom photo layout",
-        "Unlimited instant prints",
-        "Choice of preferred print format",
-        "Online album",
-        "iPad sharing station",
-        "Choice of backdrop from the Memento selection",
-        "Professional on-site attendant"
-      ],
-      ideal: "Birthdays, Weddings, Graduations",
-      image: studioImg
-    },
-    {
-      title: "For Brands & Gatherings",
-      description: "A considered experience for corporate events and brand activations, with adaptable layouts and optional branded requirements handled as part of the request.",
-      features: [
-        "Custom photo layout",
-        "Flexible print formats",
-        "Online album and sharing station",
-        "Backdrop from the Memento selection",
-        "Professional on-site attendant",
-        "Optional branded experience requirements"
-      ],
-      ideal: "Corporate events, Brand activations, Everything worth remembering",
-      image: stripImg
-    }
-  ];
-
   return (
-    <main className="w-full flex flex-col min-h-screen pt-32 pb-24 paper">
-      {/* Header */}
-      <section className="px-6 md:px-12 max-w-7xl mx-auto w-full mb-24">
-        <p className="eyebrow text-secondary mb-5">The offering / 01—02</p>
-        <h1 className="font-serif text-6xl md:text-8xl text-primary mb-8">Make it <em>physical.</em></h1>
-        <p className="text-xl font-light text-primary/80 max-w-2xl leading-relaxed">
-          Every event requires a distinct touch. We offer two core setups, each designed to capture the atmosphere with restraint and elegance.
+    <main className="min-h-screen pt-32 pb-24 paper">
+      <section className="px-6 md:px-12 max-w-7xl mx-auto mb-20">
+        <p className="eyebrow text-olive mb-5">The offering</p>
+        <h1 className="font-serif text-6xl md:text-8xl mb-8">
+          Make it <em>physical.</em>
+        </h1>
+        <p className="text-xl font-light max-w-2xl leading-relaxed">
+          For birthdays, weddings, graduations, corporate events and everything
+          worth remembering. Choose your occasion; we’ll help shape the details.
         </p>
       </section>
-
-      {/* Experience Blocks */}
-      <section className="px-6 md:px-12 max-w-7xl mx-auto w-full flex flex-col gap-32">
-        {experiences.map((exp, idx) => (
-          <div key={idx} className={`grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center ${idx % 2 === 1 ? 'lg:rtl' : ''}`}>
-            
-            <div className={`aspect-[4/5] w-full bg-muted relative overflow-hidden flex items-center justify-center ${idx % 2 === 1 ? 'lg:order-2' : 'lg:order-1'}`}>
-              <div 
-                className="absolute inset-0 bg-cover bg-center filter grayscale-[0.4]"
-                style={{ backgroundImage: `url(${exp.image})` }}
-              />
-            </div>
-            
-            <div className={`flex flex-col items-start ${idx % 2 === 1 ? 'lg:order-1' : 'lg:order-2'}`}>
-              <h2 className="font-serif text-4xl md:text-5xl text-primary mb-6">{exp.title}</h2>
-              <p className="text-primary/80 text-lg font-light leading-relaxed mb-10">
-                {exp.description}
+      <section
+        aria-label="Packages"
+        className="px-6 md:px-12 max-w-7xl mx-auto grid md:grid-cols-3 gap-8"
+      >
+        {business.packages.map((pkg, i) => (
+          <article
+            key={pkg.id}
+            className="border border-primary/15 bg-card flex flex-col"
+          >
+            <img
+              src={[birthday, wedding, corporate][i]}
+              alt={
+                [
+                  "Friends celebrating a birthday — AI illustration",
+                  "A couple sharing a wedding keepsake — AI illustration",
+                  "Colleagues sharing a print — AI illustration",
+                ][i]
+              }
+              className="w-full aspect-[4/5] object-cover"
+              loading="lazy"
+            />
+            <div className="p-6 flex flex-col flex-1">
+              <h2 className="font-serif text-3xl mb-4">{pkg.name}</h2>
+              <p className="text-xl mb-2">{formatRwf(pkg.basePriceRwf)}</p>
+              <p className="text-sm mb-6">
+                {pkg.basePriceRwf === null
+                  ? "A tailored quote for your event."
+                  : `${pkg.includedHours} hours included · ${formatRwf(pkg.extraHourRwf)} per additional hour`}
               </p>
-              
-              <div className="w-full border-t border-primary/10 pt-8 mb-8">
-                <h3 className="font-sans text-xs tracking-[0.2em] uppercase text-primary/80 mb-6">Included</h3>
-                <ul className="space-y-3">
-                  {exp.features.map((feature, fIdx) => (
-                    <li key={fIdx} className="flex items-start text-primary/90">
-                      <span className="mr-3 text-secondary">—</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-card px-6 py-4 border border-primary/10 w-full mb-10">
-                <span className="font-sans text-[10px] tracking-[0.2em] uppercase text-primary/70 block mb-1">Ideal For</span>
-                <span className="font-serif text-xl text-primary/90">{exp.ideal}</span>
-              </div>
-
-              <Link href="/book">
-                <Button variant="outline" className="rounded-none border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs h-12 px-8">
-                  Inquire
-                </Button>
+              <Link
+                href={`/book?package=${pkg.id}`}
+                className="mt-auto border border-primary px-5 py-3 text-center text-sm hover:bg-primary hover:text-background transition-colors"
+              >
+                Request this experience ↗
               </Link>
             </div>
-          </div>
+          </article>
         ))}
       </section>
-
-      {/* Add-ons */}
-      <section className="mt-32 px-6 md:px-12 py-24 bg-card w-full border-t border-primary/10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16">
-          <div className="md:col-span-1">
-            <h2 className="font-serif text-4xl text-primary mb-6">Additions</h2>
-            <p className="text-primary/80 font-light leading-relaxed">Enhance your experience with tactile upgrades and custom touches designed specifically for your event.</p>
-          </div>
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-12">
-            <div>
-              <h4 className="font-serif text-2xl text-primary mb-3">Keepsakes & Memory Books</h4>
-              <p className="text-primary/80 text-sm leading-relaxed font-light">Linen-bound albums and tailored folios for guests to safely carry and preserve their prints.</p>
-            </div>
-            <div>
-              <h4 className="font-serif text-2xl text-primary mb-3">Custom Backdrops</h4>
-              <p className="text-primary/80 text-sm leading-relaxed font-light">Beyond our signature seamless papers, we can source or build bespoke floral, fabric, or architectural sets to match your aesthetic.</p>
-            </div>
-            <div>
-              <h4 className="font-serif text-2xl text-primary mb-3">Branded Experiences</h4>
-              <p className="text-primary/80 text-sm leading-relaxed font-light">Custom tailored overlays, branded touchpoints, and bespoke set designs for corporate activations and brand moments.</p>
-            </div>
+      <section className="px-6 md:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 mt-24 items-center">
+        <img
+          src={booth}
+          alt="Friends posing at an open-air booth — illustrative AI concept, equipment may vary"
+          className="w-full aspect-[3/2] object-cover"
+          loading="lazy"
+        />
+        <div>
+          <p className="eyebrow text-olive mb-4">Every package</p>
+          <h2 className="font-serif text-4xl mb-6">The details, considered.</h2>
+          <ul className="space-y-3">
+            {business.inclusions.map((item) => (
+              <li key={item}>— {item}</li>
+            ))}
+          </ul>
+          <p className="text-sm text-primary/80 mt-6">
+            Layouts are adapted to your event. Online album access and delivery
+            details will be agreed with your booking.
+          </p>
+        </div>
+      </section>
+      <section className="mt-24 px-6 md:px-12 py-16 bg-card border-y border-primary/10">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="font-serif text-4xl mb-3">
+            A little more, if you wish.
+          </h2>
+          <p className="mb-10">
+            Choose these in the booking form. Add-ons are optional and quoted
+            separately.
+          </p>
+          <div className="grid md:grid-cols-3 gap-10">
+            {business.addOns.map((item) => (
+              <div key={item.id}>
+                <h3 className="font-serif text-2xl mb-3">{item.name}</h3>
+                <p className="text-sm leading-relaxed">{item.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
+      <p className="max-w-7xl mx-auto px-6 md:px-12 mt-8 text-xs text-primary/70">
+        Images are AI-created illustrations of our visual direction, not past
+        client events or exact equipment specifications. Requests are subject to
+        availability; no payment is collected on this website.
+      </p>
     </main>
   );
 }

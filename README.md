@@ -1,27 +1,44 @@
-# Memento website and booking requests
+# Memento website & booking requests
 
-## Setup
+A React/Vite public website, Express API and PostgreSQL booking desk.
 
-1. Run `pnpm install`.
-2. Ensure the Replit PostgreSQL database and Clerk Auth are enabled.
-3. Set `ADMIN_EMAIL` as a Secret to the administrator's sign-in email.
-4. Optionally set `VITE_PUBLIC_CONTACT_EMAIL`; the public email row stays hidden when absent.
-5. Apply the development schema with `pnpm --filter @workspace/db run push`.
-6. Regenerate clients after contract changes with `pnpm --filter @workspace/api-spec run codegen`.
-7. Start the managed API Server and Memento web workflows.
+## Start here
 
-## Booking workflow
+- [AWS deployment guide](docs/deploy-aws.md): transfer, configuration, HTTPS, backups, updates and rollback.
+- [Business configuration & owner decisions](docs/business-configuration.md): one place for prices, inclusions, contact details, add-ons and opening date.
+- [AI imagery & prompts](docs/imagery.md): nine new Quiet Archive images and retained masters.
 
-Customers submit a request, receive a `MEM-...` reference, and may follow up on WhatsApp. Memento reviews potential conflicts and personally changes the request to contacted, confirmed, declined, or cancelled. A request is never presented as confirmed on submission.
+## Development
 
-## Administration
+Use Node 24 and pnpm 10.33.0. Run `pnpm install --frozen-lockfile`.
+Set `DATABASE_URL` for a dedicated development PostgreSQL database, then run `pnpm --filter @workspace/db migrate`. Never use `push-force` in production.
+Start API: `DATABASE_URL=... pnpm --filter @workspace/api-server dev` (port 8080).
+Start website: `pnpm --filter @workspace/memento dev` (port 5173).
+The public site works without Clerk in development; the admin API fails closed until configured.
+For admin development configure both Clerk backend keys and the Vite publishable key, and a verified `ADMIN_EMAIL`. See .env.example; Vite loads the root .env, while the API needs exported environment variables (or Node's --env-file option).
+Regenerate contracts after OpenAPI changes: `pnpm --filter @workspace/api-spec codegen`.
 
-Sign in at `/sign-in`, then visit `/admin`. Set `ADMIN_EMAIL` before publishing so only the allowlisted Clerk account can use administrator endpoints. The admin area manages statuses, private notes, blocked availability, conflict indicators, customer WhatsApp follow-up, and CSV export.
+## Tests
 
-## Brand handover
+`pnpm typecheck`; `pnpm --filter @workspace/memento build`; `pnpm --filter @workspace/api-server build`.
 
-The current central CSS tokens use the approved brief's fallback values because the referenced Figma file was not accessible from this project. Replace the fallback sage/taupe values with the final Figma variables when available. All event imagery is local and visibly labelled as placeholder material until approved Memento photography is supplied.
+Integration tests use only an isolated local database named `memento_test`, port 55439. They erase that test database's booking tables; never point them at real data.
 
-## Publishing
+```sh
+docker run -d --name memento-launch-test-db -e POSTGRES_USER=memento_test -e POSTGRES_PASSWORD=local-test-only -e POSTGRES_DB=memento_test -p 127.0.0.1:55439:5432 postgres:16-alpine
+DATABASE_URL=postgresql://memento_test:local-test-only@127.0.0.1:55439/memento_test pnpm --filter @workspace/db migrate
+pnpm test
+docker stop memento-launch-test-db
+```
 
-Use Replit Publish for the non-static application. Replit applies the development database schema to production during publish and supplies production Clerk configuration automatically.
+If the container exists, use `docker start memento-launch-test-db` instead of creating another. Tests cover package pricing, strict validation, timezone/overnight scheduling, concurrent confirmations and blocks, conflict clearing, email retries and HTTP contracts. Email delivery is simulated; no real messages are sent by tests.
+
+## Workflow and limitations
+
+Customers submit **requests**, not instant confirmed reservations. Estimates exclude quoted add-ons. No payment processing or deposit promise is implemented. Owner reviews and confirms at /admin using the allowlisted verified Clerk account. One shared booth capacity is enforced, with no travel/setup buffer yet; owner should block preparation and travel time manually.
+
+Requests and notification jobs save in one database transaction. Email retries automatically, and the admin detail shows notification status. Delivery is at-least-once; an exceptional crash after mail acceptance can result in a duplicate email with the same reference. SMTP acceptance is not a guarantee of inbox placement. Real delivery and owner sign-in must be tested before launch.
+
+Old Replit deployment metadata exists for both the API and the website. This repository now also has an independent AWS deployment path; do not mix Replit's managed database publication with the AWS migration instructions.
+
+This is a functional launch implementation, not a legal/privacy compliance certification. Agree retention, image permissions, provider arrangements and owner operations before collecting live customer data.

@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+backups
+attached_assets/quiet_archive/originals
+.agents
+.codex
+.conversation
+**/*.pem
+**/*.key
+test-results

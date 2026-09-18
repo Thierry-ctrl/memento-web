@@ -17,7 +17,7 @@ export * from './booking';
 export * from './bookingConfirmation';
 export * from './bookingInput';
 export * from './bookingInputPreferredContactMethod';
-export * from './bookingPaymentMethod';
+export * from './bookingNotificationStatus';
 export * from './bookingStatus';
 export * from './bookingUpdate';
 export * from './customerType';

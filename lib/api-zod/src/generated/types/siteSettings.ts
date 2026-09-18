@@ -9,4 +9,5 @@
 export interface SiteSettings {
   bookingOpeningDate: Date;
   earlyBookingMode: boolean;
+  pricingVersion?: string;
 }

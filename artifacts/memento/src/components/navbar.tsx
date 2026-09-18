@@ -3,15 +3,12 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
-import { useAuth, useClerk } from "@clerk/react";
 import { Button } from "./ui/button";
 
 export function Navbar() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isSignedIn } = useAuth();
-  const { signOut } = useClerk();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,12 +87,6 @@ export function Navbar() {
                 Request a date
               </Button>
             </Link>
-            {isSignedIn && (
-              <div className="flex flex-col items-center gap-4 mt-5 pt-6 border-t border-primary/10 w-48">
-                <Link href="/admin" className="font-serif text-3xl text-primary/70 py-2">Admin</Link>
-                <button onClick={() => signOut()} className="font-serif text-3xl text-primary/70 py-2">Sign Out</button>
-              </div>
-            )}
           </nav>
         </div>,
         document.body,
@@ -121,12 +112,6 @@ export function Navbar() {
       {/* Desktop Nav */}
       <nav className="hidden md:flex items-center gap-8">
         <NavContent />
-        {isSignedIn && (
-          <div className="flex items-center gap-4 ml-4 border-l border-primary/10 pl-6">
-            <Link href="/admin" className="eyebrow text-primary/65 hover:text-primary">Admin</Link>
-            <button onClick={() => signOut()} className="eyebrow text-primary/65 hover:text-primary">Sign out</button>
-          </div>
-        )}
       </nav>
 
       {/* Mobile Menu Toggle */}
