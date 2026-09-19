@@ -8,7 +8,7 @@ export const business = {
     phoneLabel: "0788 628 735",
     instagram: "https://www.instagram.com/memento_kigali/",
     // Add the verified WhatsApp Business number in international digits when ready.
-    whatsappNumber: null as string | null,
+    whatsappNumber: "250788628735" as string | null,
   },
   booking: {
     timeZone: "Africa/Kigali",
