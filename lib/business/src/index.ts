@@ -50,7 +50,10 @@ export function formatRwf(amount: number | null | undefined) {
     : `RWF ${amount.toLocaleString("en-RW")}`;
 }
 export function addOnName(id: string) {
-  return business.addOns.find((a) => a.id === id)?.name ?? id;
+  return (
+    business.addOns.find((a) => a.id === id)?.name ??
+    (id === "branded-experience" ? "Branded Experience" : id)
+  );
 }
 export function whatsappUrl(message = "") {
   return business.contact.whatsappNumber

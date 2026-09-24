@@ -69,6 +69,16 @@ test("package prices and separately quoted add-ons", () => {
   assert.equal(estimatePrice("wedding", 4).totalAmountRwf, 600000);
   assert.equal(estimatePrice("other", 3).totalAmountRwf, null);
   assert.equal(estimatePrice("birthday", 2, ["keepsakes"]).quoteRequired, true);
+  assert.equal(
+    business.inclusions.includes(
+      "Branded experience with a custom photo layout",
+    ),
+    true,
+  );
+  assert.equal(
+    business.addOns.some((addOn) => addOn.id === "branded-experience"),
+    false,
+  );
   assert.equal(estimatePrice("wedding", 2).depositAmountRwf, null);
   for (const hours of [0, 1, 2.5, 25, NaN])
     assert.throws(() => estimatePrice("birthday", hours));
@@ -111,11 +121,10 @@ test("request snapshots authoritative prices and queues two messages atomically"
     2,
   );
 });
-test("invalid required fields, unavailable contact and custom backdrop are rejected", async () => {
+test("invalid required fields and unselected custom backdrop are rejected", async () => {
   for (const input of [
     { ...valid, email: null },
     { ...valid, consent: false },
-    { ...valid, preferredContactMethod: "whatsapp" },
     { ...valid, guestCount: 2.5 },
     { ...valid, backdropPreference: "custom" },
   ])

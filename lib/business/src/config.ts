@@ -1,7 +1,7 @@
 // Edit this file, update the version, then rebuild/redeploy both apps.
 // Existing requests keep their original pricing snapshot.
 export const business = {
-  pricingVersion: "2026-09-16",
+  pricingVersion: "2026-09-24",
   contact: {
     email: "mementokigali@gmail.com",
     phone: "+250788628735",
@@ -42,7 +42,7 @@ export const business = {
     },
   ],
   inclusions: [
-    "Custom photo layout",
+    "Branded experience with a custom photo layout",
     "Unlimited instant prints",
     "Choice of preferred print format",
     "Digital copies & online album",
@@ -60,11 +60,6 @@ export const business = {
       id: "custom-backdrop",
       name: "Custom Backdrops",
       description: "A backdrop tailored to your event, subject to discussion.",
-    },
-    {
-      id: "branded-experience",
-      name: "Branded Experiences",
-      description: "Custom layouts and brand details for your gathering.",
     },
   ],
 } as const;

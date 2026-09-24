@@ -90,7 +90,14 @@ export default function Book() {
         saved &&
         saved.expires > Date.now() &&
         Array.isArray(saved.values?.addOns)
-        ? { ...initial, ...saved.values, consent: false }
+        ? {
+            ...initial,
+            ...saved.values,
+            addOns: saved.values.addOns.filter((id: unknown) =>
+              business.addOns.some((addOn) => addOn.id === id),
+            ),
+            consent: false,
+          }
         : defaults;
     } catch {
       return defaults;
@@ -721,7 +728,16 @@ export default function Book() {
           )}
           {step === 3 && (
             <>
-              <Field label="Branding or customization (optional)">
+              <div className="border border-primary/20 bg-card p-5">
+                <p className="font-medium">
+                  Your branded experience is included
+                </p>
+                <p className="text-sm text-primary/75 mt-1">
+                  Every package includes a custom photo layout made for your
+                  event, at no extra cost.
+                </p>
+              </div>
+              <Field label="Branding or customization details (optional)">
                 <Textarea
                   maxLength={2000}
                   value={values.brandedRequirements}
