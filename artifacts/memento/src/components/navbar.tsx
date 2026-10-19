@@ -57,7 +57,7 @@ export function Navbar() {
       ))}
       <Link href="/book" className="ml-4 hidden md:block">
         <Button variant="outline" className="rounded-none tracking-widest uppercase text-[10px] h-10 px-5 border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all duration-500">
-          Request a date
+          Book now
         </Button>
       </Link>
     </>
@@ -84,7 +84,7 @@ export function Navbar() {
             ))}
             <Link href="/book" className="mt-5">
               <Button variant="outline" className="rounded-none tracking-widest uppercase text-sm h-14 px-10 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors duration-300">
-                Request a date
+                Book now
               </Button>
             </Link>
           </nav>

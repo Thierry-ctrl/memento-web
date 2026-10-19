@@ -30,7 +30,7 @@ export default function Home() {
           </p>
           <Link href="/book">
             <Button variant="outline" className="rounded-none border-primary text-primary hover:bg-primary hover:text-primary-foreground tracking-widest uppercase text-xs h-12 px-10 transition-all duration-700">
-              Request a date <span aria-hidden="true" className="ml-4">↗</span>
+              Book now <span aria-hidden="true" className="ml-4">↗</span>
             </Button>
           </Link>
         </div>
