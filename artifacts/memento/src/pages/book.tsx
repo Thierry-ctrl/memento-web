@@ -52,7 +52,7 @@ const labels = [
   "A few more details",
   "Review & request",
 ];
-const draftKey = "memento_booking_v2";
+const draftKey = "memento_booking_v3";
 
 function Field({
   label,
@@ -81,7 +81,8 @@ export default function Book() {
       ? {
           ...initial,
           packageId: pkg.id,
-          eventType: pkg.id === "other" ? "" : pkg.name,
+          eventType: pkg.eventType,
+          printFormat: pkg.printFormat ?? initial.printFormat,
         }
       : initial;
     try {
@@ -111,6 +112,12 @@ export default function Book() {
   const heading = useRef<HTMLHeadingElement>(null);
   const create = useCreateBooking();
   const settings = useGetSiteSettings();
+  const selectedPackage = business.packages.find(
+    (pkg) => pkg.id === values.packageId,
+  );
+  const selectedIncludedAddOns: readonly string[] =
+    selectedPackage?.includedAddOns ?? [];
+  const fixedPrintFormat = selectedPackage?.printFormat ?? null;
   const nextDate =
     values.eventDate &&
     Number.isFinite(Date.parse(`${values.eventDate}T00:00:00Z`))
@@ -472,13 +479,19 @@ export default function Book() {
                   value={values.packageId}
                   onChange={(e) => {
                     const id = e.target.value;
+                    const nextPackage = business.packages.find(
+                      (p) => p.id === id,
+                    )!;
+                    const includedAddOns: readonly string[] =
+                      nextPackage.includedAddOns;
                     setValues((v) => ({
                       ...v,
                       packageId: id,
-                      eventType:
-                        id === "other"
-                          ? ""
-                          : business.packages.find((p) => p.id === id)!.name,
+                      eventType: nextPackage.eventType,
+                      printFormat: nextPackage.printFormat ?? v.printFormat,
+                      addOns: v.addOns.filter(
+                        (addOn) => !includedAddOns.includes(addOn),
+                      ),
                     }));
                   }}
                 >
@@ -550,6 +563,13 @@ export default function Book() {
                   Unlimited prints and digital copies included. Add-ons are
                   quoted separately. Payment terms follow with your quote.
                 </p>
+                {selectedPackage && selectedPackage.features.length > 0 && (
+                  <ul className="text-sm mt-4 space-y-1 border-t border-primary/10 pt-4">
+                    {selectedPackage.features.map((feature) => (
+                      <li key={feature}>— {feature}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
               {values.eventDate && (
                 <div
@@ -645,15 +665,24 @@ export default function Book() {
           {step === 2 && (
             <>
               <Field label="Print format">
-                <select
-                  className={selectClass}
-                  value={values.printFormat}
-                  onChange={(e) => update("printFormat", e.target.value)}
-                >
-                  <option value="discuss">Help me choose</option>
-                  <option value="4x6">4×6 inch print</option>
-                  <option value="2x6-strip">2×6 inch photo strip</option>
-                </select>
+                <>
+                  <select
+                    className={selectClass}
+                    value={values.printFormat}
+                    disabled={fixedPrintFormat !== null}
+                    onChange={(e) => update("printFormat", e.target.value)}
+                  >
+                    <option value="discuss">Help me choose</option>
+                    <option value="4x6">4×6 inch print</option>
+                    <option value="2x6-strip">2×6 inch photo strip</option>
+                  </select>
+                  {fixedPrintFormat !== null && (
+                    <span className="block text-sm text-primary/70">
+                      This print format is included with the selected wedding
+                      package.
+                    </span>
+                  )}
+                </>
               </Field>
               <Field label="Backdrop preference">
                 <select
@@ -690,39 +719,41 @@ export default function Book() {
                   Select anything you would like us to include in your quote.
                   These prices are not included in the package estimate.
                 </p>
-                {business.addOns.map((a) => (
-                  <label
-                    key={a.id}
-                    className="flex gap-4 border border-primary/20 p-5 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 mt-1 accent-ink"
-                      checked={values.addOns.includes(a.id)}
-                      onChange={(e) => {
-                        const selected = e.target.checked;
-                        setValues((v) => ({
-                          ...v,
-                          addOns: selected
-                            ? [...v.addOns, a.id]
-                            : v.addOns.filter((id) => id !== a.id),
-                          backdropPreference:
-                            a.id === "custom-backdrop" &&
-                            !selected &&
-                            v.backdropPreference === "custom"
-                              ? "from-selection"
-                              : v.backdropPreference,
-                        }));
-                      }}
-                    />
-                    <span>
-                      <span className="font-medium">{a.name}</span>
-                      <span className="block text-sm text-primary/75 mt-1">
-                        {a.description}
+                {business.addOns
+                  .filter((addOn) => !selectedIncludedAddOns.includes(addOn.id))
+                  .map((a) => (
+                    <label
+                      key={a.id}
+                      className="flex gap-4 border border-primary/20 p-5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 mt-1 accent-ink"
+                        checked={values.addOns.includes(a.id)}
+                        onChange={(e) => {
+                          const selected = e.target.checked;
+                          setValues((v) => ({
+                            ...v,
+                            addOns: selected
+                              ? [...v.addOns, a.id]
+                              : v.addOns.filter((id) => id !== a.id),
+                            backdropPreference:
+                              a.id === "custom-backdrop" &&
+                              !selected &&
+                              v.backdropPreference === "custom"
+                                ? "from-selection"
+                                : v.backdropPreference,
+                          }));
+                        }}
+                      />
+                      <span>
+                        <span className="font-medium">{a.name}</span>
+                        <span className="block text-sm text-primary/75 mt-1">
+                          {a.description}
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                ))}
+                    </label>
+                  ))}
               </fieldset>
             </>
           )}

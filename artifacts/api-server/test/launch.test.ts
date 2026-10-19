@@ -65,21 +65,25 @@ const valid = {
 test("package prices and separately quoted add-ons", () => {
   assert.equal(estimatePrice("birthday", 2).totalAmountRwf, 200000);
   assert.equal(estimatePrice("birthday", 3).totalAmountRwf, 275000);
-  assert.equal(estimatePrice("wedding", 2).totalAmountRwf, 300000);
-  assert.equal(estimatePrice("wedding", 4).totalAmountRwf, 600000);
+  assert.equal(estimatePrice("wedding-bronze", 2).totalAmountRwf, 350000);
+  assert.equal(estimatePrice("wedding-bronze", 4).totalAmountRwf, 650000);
+  assert.equal(estimatePrice("wedding-silver", 2).totalAmountRwf, 500000);
+  assert.equal(estimatePrice("wedding-gold", 2).totalAmountRwf, 900000);
+  assert.equal(
+    estimatePrice("wedding-gold", 2, ["keepsakes"]).quoteRequired,
+    false,
+  );
   assert.equal(estimatePrice("other", 3).totalAmountRwf, null);
   assert.equal(estimatePrice("birthday", 2, ["keepsakes"]).quoteRequired, true);
   assert.equal(
-    business.inclusions.includes(
-      "Branded experience with a custom photo layout",
-    ),
+    business.inclusions.includes("Branded custom print design"),
     true,
   );
   assert.equal(
     business.addOns.some((addOn) => addOn.id === "branded-experience"),
     false,
   );
-  assert.equal(estimatePrice("wedding", 2).depositAmountRwf, null);
+  assert.equal(estimatePrice("wedding-bronze", 2).depositAmountRwf, null);
   for (const hours of [0, 1, 2.5, 25, NaN])
     assert.throws(() => estimatePrice("birthday", hours));
   assert.throws(() => estimatePrice("birthday", 2, ["unknown"]));

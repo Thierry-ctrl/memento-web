@@ -22,6 +22,8 @@ export function estimatePrice(
   )
     throw new Error("Choose valid add-ons.");
   const extraHours = durationHours - pkg.includedHours;
+  const includedAddOns: readonly string[] = pkg.includedAddOns;
+  const quotedAddOns = addOns.filter((id) => !includedAddOns.includes(id));
   const totalAmountRwf =
     pkg.basePriceRwf === null
       ? null
@@ -37,10 +39,12 @@ export function estimatePrice(
     totalAmountRwf,
     depositPercentage,
     depositAmountRwf:
-      totalAmountRwf === null || addOns.length > 0 || depositPercentage === null
+      totalAmountRwf === null ||
+      quotedAddOns.length > 0 ||
+      depositPercentage === null
         ? null
         : Math.round((totalAmountRwf * depositPercentage) / 100),
-    quoteRequired: totalAmountRwf === null || addOns.length > 0,
+    quoteRequired: totalAmountRwf === null || quotedAddOns.length > 0,
   };
 }
 

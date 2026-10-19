@@ -5,6 +5,20 @@ import wedding from "@assets/quiet_archive/wedding-keepsake.jpg";
 import corporate from "@assets/quiet_archive/corporate-gathering.jpg";
 import booth from "@assets/quiet_archive/booth-experience.jpg";
 
+function packageImage(id: string) {
+  if (id === "birthday") return birthday;
+  if (id.startsWith("wedding-")) return wedding;
+  return corporate;
+}
+
+function packageImageAlt(id: string) {
+  if (id === "birthday")
+    return "Friends celebrating a birthday — AI illustration";
+  if (id.startsWith("wedding-"))
+    return "A couple sharing a wedding keepsake — AI illustration";
+  return "Colleagues sharing a print — AI illustration";
+}
+
 export default function Experiences() {
   return (
     <main className="min-h-screen pt-32 pb-24 paper">
@@ -20,22 +34,16 @@ export default function Experiences() {
       </section>
       <section
         aria-label="Packages"
-        className="px-6 md:px-12 max-w-7xl mx-auto grid md:grid-cols-3 gap-8"
+        className="px-6 md:px-12 max-w-7xl mx-auto grid md:grid-cols-2 xl:grid-cols-3 gap-8"
       >
-        {business.packages.map((pkg, i) => (
+        {business.packages.map((pkg) => (
           <article
             key={pkg.id}
             className="border border-primary/15 bg-card flex flex-col"
           >
             <img
-              src={[birthday, wedding, corporate][i]}
-              alt={
-                [
-                  "Friends celebrating a birthday — AI illustration",
-                  "A couple sharing a wedding keepsake — AI illustration",
-                  "Colleagues sharing a print — AI illustration",
-                ][i]
-              }
+              src={packageImage(pkg.id)}
+              alt={packageImageAlt(pkg.id)}
               className="w-full aspect-[4/5] object-cover"
               loading="lazy"
             />
@@ -47,6 +55,13 @@ export default function Experiences() {
                   ? "A tailored quote for your event."
                   : `${pkg.includedHours} hours included · ${formatRwf(pkg.extraHourRwf)} per additional hour`}
               </p>
+              {pkg.features.length > 0 && (
+                <ul className="space-y-2 text-sm mb-8 border-t border-primary/10 pt-5">
+                  {pkg.features.map((feature) => (
+                    <li key={feature}>— {feature}</li>
+                  ))}
+                </ul>
+              )}
               <Link
                 href={`/book?package=${pkg.id}`}
                 className="mt-auto border border-primary px-5 py-3 text-center text-sm hover:bg-primary hover:text-background transition-colors"
@@ -100,7 +115,8 @@ export default function Experiences() {
       <p className="max-w-7xl mx-auto px-6 md:px-12 mt-8 text-xs text-primary/70">
         Images are AI-created illustrations of our visual direction, not past
         client events or exact equipment specifications. Requests are subject to
-        availability; no payment is collected on this website.
+        availability; no payment is collected on this website. Listed prices are
+        standard rates and may vary for tailored requirements.
       </p>
     </main>
   );
